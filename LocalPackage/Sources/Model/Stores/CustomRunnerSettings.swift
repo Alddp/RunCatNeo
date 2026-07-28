@@ -95,20 +95,6 @@ public final class CustomRunnerSettings: Composable {
         case .onDisappear:
             task?.cancel()
             task = nil
-            
-        case .addCustomRunnerButtonTapped:
-            showingCustomRunnerEditorSheet = true
-            
-        case .cancelButtonTapped:
-            showingCustomRunnerEditorSheet = false
-            
-        case .onDissmissSheet:
-            runnerName = ""
-            isTemplate = true
-            frameImages.removeAll()
-            selectingFrameImage = nil
-            previewingFrameImage = nil
-            previewSpeed = 1
 
         case let .deleteButtonTapped(runner):
             guard let currentRunner = appStateClient.withLock(\.runnerBundles.latestValue)?.runner else {
@@ -126,21 +112,43 @@ public final class CustomRunnerSettings: Composable {
                 logService.critical(.deletingCustomRunnerFailed(error))
             }
 
+        case let .onMoveCustomRunnerRow(indexSet, offset):
+            customRunnerBundleList.move(fromOffsets: indexSet, toOffset: offset)
+            do {
+                try runnerService.move(fromOffsets: indexSet, toOffset: offset)
+            } catch {
+                logService.critical(.sortingCustomRunnersFailed(error))
+            }
+
+        case .addCustomRunnerButtonTapped:
+            showingCustomRunnerEditorSheet = true
+
+        case .cancelButtonTapped:
+            showingCustomRunnerEditorSheet = false
+
+        case .onDissmissSheet:
+            runnerName = ""
+            isTemplate = true
+            frameImages.removeAll()
+            selectingFrameImage = nil
+            previewingFrameImage = nil
+            previewSpeed = 1
+
         case let .selectRenderingMode(renderingMode):
             isTemplate = renderingMode.isTemplate
-
-        case let .onDragFrameImageCell(frameImage):
-            selectingFrameImage = frameImage
             
         case let .onTapFrameImageCell(frameImage):
             selectingFrameImage = frameImage
-            
+
         case .onTapCollectionBackground:
             selectingFrameImage = nil
             
-        case let .onDropCollection(urls):
+        case let .onDropFiles(urls):
             do {
-                try urls.forEach { url in
+                let sortedURLs = urls.sorted {
+                    $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+                }
+                try sortedURLs.forEach { url in
                     if url.pathExtension.lowercased() == "png" {
                         try appendFrameImage(from: url)
                     }
@@ -199,7 +207,7 @@ public final class CustomRunnerSettings: Composable {
                 )
                 do {
                     let frame = try runnerService.convertToCustomFrame(from: frameImage)
-                    try runnerService.save(customRunner: runner, with: frameImages)
+                    try runnerService.add(customRunner: runner, with: frameImages)
                     customRunnerBundleList.append(.init(runner: runner, frame: frame))
                 } catch {
                     logService.critical(.savingCustomRunnerFailed(error))
@@ -243,14 +251,14 @@ public final class CustomRunnerSettings: Composable {
         case task
         case onDisappear
         case deleteButtonTapped(Runner)
+        case onMoveCustomRunnerRow(IndexSet, Int)
         case addCustomRunnerButtonTapped
         case cancelButtonTapped
         case onDissmissSheet
         case selectRenderingMode(RenderingMode)
-        case onDragFrameImageCell(FrameImage)
         case onTapFrameImageCell(FrameImage)
         case onTapCollectionBackground
-        case onDropCollection([URL])
+        case onDropFiles([URL])
         case addFrameButtonTapped
         case deleteFrameButtonTapped
         case onCompletionFileImporter(Result<[URL], any Error>)

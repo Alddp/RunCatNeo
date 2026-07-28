@@ -91,15 +91,15 @@ public final class Dashboard: Composable {
             guard let url = nsWorkspaceClient.urlForApplication(.activityMonitor) else { return }
             nsWorkspaceClient.openApplication(url, .init())
 
-        case let .openSourceLicenseButtonTapped(openWindow):
-            nsAppClient.activate(true)
-            openWindow(id: .openSourceLicense, value: Int.zero)
-
         case let .aboutButtonTapped(body):
             nsAppClient.activate(true)
             nsAppClient.orderFrontStandardAboutPanel([
                 NSApplication.AboutPanelOptionKey.credits: NSAttributedString(body)
             ])
+
+        case let .openSourceLicenseButtonTapped(openWindow):
+            nsAppClient.activate(true)
+            openWindow(id: .openSourceLicense, value: Int.zero)
 
         case .reportIssueButtonTapped:
             _ = nsWorkspaceClient.open(URL.githubIssues)

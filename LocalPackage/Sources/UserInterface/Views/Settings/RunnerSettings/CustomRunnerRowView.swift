@@ -1,8 +1,8 @@
 /*
- CustomMetricsSourceRowView.swift
+ CustomRunnerRowView.swift
  UserInterface
 
- Created by Takuto Nakamura on 2026/06/06.
+ Created by Takuto Nakamura on 2026/07/28.
  Copyright 2026 Kyome22 (Takuto Nakamura)
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,17 +21,15 @@
 import DataSource
 import SwiftUI
 
-struct CustomMetricsSourceRowView: View {
-    var source: CustomMetricsSource
-    var isErrorDetected: Bool
-    var removeButtonTapped: () async -> Void
-    var sourceLinkTapped: () async -> Void
+struct CustomRunnerRowView: View {
+    var runnerBundle: RunnerBundle
+    var deleteButtonTapped: () async -> Void
 
     var body: some View {
         LabeledContent {
             Button(role: .destructive) {
                 Task {
-                    await removeButtonTapped()
+                    await deleteButtonTapped()
                 }
             } label: {
                 Image(systemName: "minus.circle")
@@ -39,20 +37,10 @@ struct CustomMetricsSourceRowView: View {
             .buttonStyle(.borderless)
             .tint(Color.red)
         } label: {
-            Text(source.displayName)
-                .truncationMode(.middle)
-            HStack(spacing: 8) {
-                Text(LocalizedStringKey(stringLiteral: "\(source.fileURL.relativePath) [→](/)"))
-                    .environment(\.openURL, OpenURLAction { _ in
-                        Task {
-                            await sourceLinkTapped()
-                        }
-                        return .handled
-                    })
-                if isErrorDetected {
-                    Text("errorDetected", bundle: .module)
-                        .foregroundStyle(Color.yellow)
-                }
+            Label {
+                Text(runnerBundle.runner.formatted)
+            } icon: {
+                runnerBundle.thumbnail
             }
         }
     }

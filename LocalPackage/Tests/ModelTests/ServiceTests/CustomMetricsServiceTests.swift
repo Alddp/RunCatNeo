@@ -125,6 +125,16 @@ struct CustomMetricsServiceTests {
     }
 
     @Test
+    func moveSources_reorders_sources_in_configuration() {
+        let firstSource = makeSource(id: UUID(1))
+        let secondSource = makeSource(id: UUID(2))
+        let storage = UserDefaultsClient.storage(initialSources: [firstSource, secondSource])
+        let sut = CustomMetricsService(.testDependencies(userDefaultsClient: storage.client))
+        sut.moveSources(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        #expect(storage.currentConfiguration() == CustomMetricsConfiguration(sources: [secondSource, firstSource]))
+    }
+
+    @Test
     func perform_passes_resolved_security_scoped_url_to_action() throws {
         let receivedURLs = AllocatedUnfairLock<[URL]>(initialState: [])
         let sut = CustomMetricsService(.testDependencies(

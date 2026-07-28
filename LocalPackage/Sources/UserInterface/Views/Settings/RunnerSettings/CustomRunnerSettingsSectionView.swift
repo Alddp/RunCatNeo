@@ -24,24 +24,29 @@ import SwiftUI
 struct CustomRunnerSettingsSectionView: View {
     @State var store: CustomRunnerSettings
 
+    private var runnerGalleryGuidance: AttributedString {
+        var text = AttributedString(String(localized: "runnerGalleryDescription", bundle: .module))
+        if let range = text.range(of: "Runner Gallery") {
+            text[range].link = URL.runnerGallery
+            text[range].foregroundColor = NSColor.linkColor
+        }
+        return text
+    }
+
     var body: some View {
         Section {
-            ForEach(store.customRunnerBundleList, id: \.runner) { runnerBundle in
-                LabeledContent {
-                    Button(role: .destructive) {
-                        Task {
+            List {
+                ForEach(store.customRunnerBundleList) { runnerBundle in
+                    CustomRunnerRowView(
+                        runnerBundle: runnerBundle,
+                        deleteButtonTapped: {
                             await store.send(.deleteButtonTapped(runnerBundle.runner))
                         }
-                    } label: {
-                        Image(systemName: "minus.circle")
-                            .foregroundStyle(Color.red)
-                    }
-                    .buttonStyle(.borderless)
-                } label: {
-                    Label {
-                        runnerBundle.runner.displayText
-                    } icon: {
-                        runnerBundle.thumbnail
+                    )
+                }
+                .onMove { indexSet, offset in
+                    Task {
+                        await store.send(.onMoveCustomRunnerRow(indexSet, offset))
                     }
                 }
             }
@@ -83,14 +88,5 @@ struct CustomRunnerSettingsSectionView: View {
                 await store.send(.onDisappear)
             }
         }
-    }
-
-    var runnerGalleryGuidance: AttributedString {
-        var text = AttributedString(String(localized: "runnerGalleryDescription", bundle: .module))
-        if let range = text.range(of: "Runner Gallery") {
-            text[range].link = URL.runnerGallery
-            text[range].foregroundColor = NSColor.linkColor
-        }
-        return text
     }
 }

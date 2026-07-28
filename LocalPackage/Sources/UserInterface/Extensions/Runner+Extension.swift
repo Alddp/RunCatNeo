@@ -19,15 +19,14 @@
  */
 
 import DataSource
-import SwiftUI
 
 extension Runner {
-    var displayText: Text {
+    var formatted: String {
         switch source {
         case let .builtIn(kind):
-            Text(kind.localizedName)
+            kind.localizedName
         case let .custom(name):
-            Text(name)
+            name
         }
     }
 }

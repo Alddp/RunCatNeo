@@ -79,6 +79,103 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
+    func send_onMoveCustomRunnerRow_reorders_list_and_persists_new_order() async {
+        let json = """
+            [
+              {
+                "id": "first-runner",
+                "name": "First Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              },
+              {
+                "id": "second-runner",
+                "name": "Second Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              }
+            ]
+            """
+        let writtenJSON = AllocatedUnfairLock<String?>(initialState: nil)
+        let firstBundle = RunnerBundle(
+            runner: Runner(id: "first-runner", name: "First Runner", isTemplate: false, frameOrder: .custom([0])),
+            frame: .custom(Data())
+        )
+        let secondBundle = RunnerBundle(
+            runner: Runner(id: "second-runner", name: "Second Runner", isTemplate: false, frameOrder: .custom([0])),
+            frame: .custom(Data())
+        )
+        let sut = CustomRunnerSettings(
+            .testDependencies(
+                dataClient: testDependency(of: DataClient.self) {
+                    $0.read = { url in
+                        url.hasPathSuffix("CUSTOM_RUNNERS.json") ? Data(json.utf8) : Data("frame".utf8)
+                    }
+                    $0.write = { data, _ in
+                        writtenJSON.withLock { $0 = String(decoding: data, as: UTF8.self) }
+                    }
+                },
+                fileManagerClient: testDependency(of: FileManagerClient.self) {
+                    $0.fileExists = { _ in true }
+                }
+            ),
+            customRunnerBundleList: [firstBundle, secondBundle]
+        )
+        await sut.send(.onMoveCustomRunnerRow(IndexSet(integer: 1), 0))
+        #expect(sut.customRunnerBundleList == [secondBundle, firstBundle])
+        let expectedJSON = #"[{"frameOrder":[0],"id":"second-runner","isTemplate":false,"name":"Second Runner"},"#
+            + #"{"frameOrder":[0],"id":"first-runner","isTemplate":false,"name":"First Runner"}]"#
+        #expect(writtenJSON.withLock(\.self) == expectedJSON)
+    }
+
+    @MainActor @Test
+    func send_addCustomRunnerButtonTapped_shows_editor_sheet() async {
+        let sut = CustomRunnerSettings(.testDependencies())
+        await sut.send(.addCustomRunnerButtonTapped)
+        #expect(sut.showingCustomRunnerEditorSheet == true)
+    }
+
+    @MainActor @Test
+    func send_cancelButtonTapped_hides_editor_sheet() async {
+        let sut = CustomRunnerSettings(
+            .testDependencies(),
+            showingCustomRunnerEditorSheet: true
+        )
+        await sut.send(.cancelButtonTapped)
+        #expect(sut.showingCustomRunnerEditorSheet == false)
+    }
+
+    @MainActor @Test
+    func send_onDissmissSheet_resets_editor_inputs() async {
+        let frameImage = FrameImage.dummy()
+        let sut = CustomRunnerSettings(
+            .testDependencies(),
+            runnerName: "New Runner",
+            isTemplate: false,
+            frameImages: [frameImage],
+            selectingFrameImage: frameImage,
+            previewingFrameImage: frameImage,
+            previewSpeed: 2
+        )
+        await sut.send(.onDissmissSheet)
+        #expect(sut.runnerName.isEmpty)
+        #expect(sut.isTemplate == true)
+        #expect(sut.frameImages.isEmpty)
+        #expect(sut.selectingFrameImage == nil)
+        #expect(sut.previewingFrameImage == nil)
+        #expect(sut.previewSpeed == 1)
+    }
+
+    @MainActor @Test
+    func send_selectRenderingMode_updates_isTemplate() async {
+        let sut = CustomRunnerSettings(.testDependencies())
+        await sut.send(.selectRenderingMode(.color))
+        #expect(sut.isTemplate == false)
+        await sut.send(.selectRenderingMode(.monochrome))
+        #expect(sut.isTemplate == true)
+    }
+
+    @MainActor @Test
     func send_onTapFrameImageCell_selects_frame_and_background_clears_it() async {
         let frameImage = FrameImage.dummy()
         let sut = CustomRunnerSettings(.testDependencies())
@@ -89,10 +186,10 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onDropCollection_appends_valid_png_and_ignores_other_extensions() async {
+    func send_onDropFiles_appends_valid_png_and_ignores_other_extensions() async {
         let recorder = errorRecorder()
         let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onDropCollection([
+        await sut.send(.onDropFiles([
             URL.fixture(name: "solid_red_30x36"),
             URL(filePath: "/tmp/ignored.json"),
         ]))
@@ -101,10 +198,10 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onDropCollection_forwards_error_when_image_size_is_invalid() async {
+    func send_onDropFiles_forwards_error_when_image_size_is_invalid() async {
         let recorder = errorRecorder()
         let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onDropCollection([URL.fixture(name: "solid_red_10x18")]))
+        await sut.send(.onDropFiles([URL.fixture(name: "solid_red_10x18")]))
         #expect(recorder.lock.withLock(\.self) == .customRunner(.invalidFrameImage))
         #expect(sut.frameImages.isEmpty)
     }
@@ -128,6 +225,46 @@ struct CustomRunnerSettingsTests {
         await sut.send(.deleteFrameButtonTapped)
         #expect(sut.frameImages == [secondFrameImage])
         #expect(sut.selectingFrameImage == secondFrameImage)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_appends_accessible_frame_image() async {
+        let recorder = errorRecorder()
+        let urlClient = testDependency(of: URLClient.self) {
+            $0.startAccessingSecurityScopedResource = { _ in true }
+            $0.stopAccessingSecurityScopedResource = { _ in }
+        }
+        let sut = CustomRunnerSettings(
+            .testDependencies(urlClient: urlClient),
+            action: recorder.action
+        )
+        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
+        #expect(sut.frameImages.count == 1)
+        #expect(recorder.lock.withLock(\.self) == nil)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_skips_inaccessible_frame_image() async {
+        let recorder = errorRecorder()
+        let urlClient = testDependency(of: URLClient.self) {
+            $0.startAccessingSecurityScopedResource = { _ in false }
+        }
+        let sut = CustomRunnerSettings(
+            .testDependencies(urlClient: urlClient),
+            action: recorder.action
+        )
+        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
+        #expect(sut.frameImages.isEmpty)
+        #expect(recorder.lock.withLock(\.self) == nil)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_failure_is_noop() async {
+        let recorder = errorRecorder()
+        let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
+        await sut.send(.onCompletionFileImporter(.failure(URLError(.cancelled))))
+        #expect(sut.frameImages.isEmpty)
+        #expect(recorder.lock.withLock(\.self) == nil)
     }
 
     @MainActor @Test
@@ -215,100 +352,5 @@ struct CustomRunnerSettingsTests {
         await sut.send(.addButtonTapped)
         #expect(recorder.lock.withLock(\.self) == nil)
         #expect(sut.customRunnerBundleList.isEmpty)
-    }
-
-    @MainActor @Test
-    func send_addCustomRunnerButtonTapped_shows_editor_sheet() async {
-        let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.addCustomRunnerButtonTapped)
-        #expect(sut.showingCustomRunnerEditorSheet == true)
-    }
-
-    @MainActor @Test
-    func send_cancelButtonTapped_hides_editor_sheet() async {
-        let sut = CustomRunnerSettings(
-            .testDependencies(),
-            showingCustomRunnerEditorSheet: true
-        )
-        await sut.send(.cancelButtonTapped)
-        #expect(sut.showingCustomRunnerEditorSheet == false)
-    }
-
-    @MainActor @Test
-    func send_onDissmissSheet_resets_editor_inputs() async {
-        let frameImage = FrameImage.dummy()
-        let sut = CustomRunnerSettings(
-            .testDependencies(),
-            runnerName: "New Runner",
-            isTemplate: false,
-            frameImages: [frameImage],
-            selectingFrameImage: frameImage,
-            previewingFrameImage: frameImage,
-            previewSpeed: 2
-        )
-        await sut.send(.onDissmissSheet)
-        #expect(sut.runnerName.isEmpty)
-        #expect(sut.isTemplate == true)
-        #expect(sut.frameImages.isEmpty)
-        #expect(sut.selectingFrameImage == nil)
-        #expect(sut.previewingFrameImage == nil)
-        #expect(sut.previewSpeed == 1)
-    }
-
-    @MainActor @Test
-    func send_selectRenderingMode_updates_isTemplate() async {
-        let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.selectRenderingMode(.color))
-        #expect(sut.isTemplate == false)
-        await sut.send(.selectRenderingMode(.monochrome))
-        #expect(sut.isTemplate == true)
-    }
-
-    @MainActor @Test
-    func send_onDragFrameImageCell_selects_frame() async {
-        let frameImage = FrameImage.dummy()
-        let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.onDragFrameImageCell(frameImage))
-        #expect(sut.selectingFrameImage == frameImage)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_appends_accessible_frame_image() async {
-        let recorder = errorRecorder()
-        let urlClient = testDependency(of: URLClient.self) {
-            $0.startAccessingSecurityScopedResource = { _ in true }
-            $0.stopAccessingSecurityScopedResource = { _ in }
-        }
-        let sut = CustomRunnerSettings(
-            .testDependencies(urlClient: urlClient),
-            action: recorder.action
-        )
-        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
-        #expect(sut.frameImages.count == 1)
-        #expect(recorder.lock.withLock(\.self) == nil)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_skips_inaccessible_frame_image() async {
-        let recorder = errorRecorder()
-        let urlClient = testDependency(of: URLClient.self) {
-            $0.startAccessingSecurityScopedResource = { _ in false }
-        }
-        let sut = CustomRunnerSettings(
-            .testDependencies(urlClient: urlClient),
-            action: recorder.action
-        )
-        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
-        #expect(sut.frameImages.isEmpty)
-        #expect(recorder.lock.withLock(\.self) == nil)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_failure_is_noop() async {
-        let recorder = errorRecorder()
-        let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onCompletionFileImporter(.failure(URLError(.cancelled))))
-        #expect(sut.frameImages.isEmpty)
-        #expect(recorder.lock.withLock(\.self) == nil)
     }
 }

@@ -344,7 +344,7 @@ struct RunnerServiceTests {
     }
 
     @Test
-    func save_customRunner_writes_frame_files_and_appended_custom_runners_file() throws {
+    func add_customRunner_writes_frame_files_and_appended_custom_runners_file() throws {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let written = AllocatedUnfairLock<[(data: Data, url: URL)]>(initialState: [])
         let sut = RunnerService(.testDependencies(
@@ -357,7 +357,7 @@ struct RunnerServiceTests {
             }
         ))
         let runner = Runner(id: "custom-runner", name: "Custom Runner", isTemplate: false, frameOrder: .custom([0, 1]))
-        try sut.save(customRunner: runner, with: [FrameImage.dummy(), FrameImage.dummy()])
+        try sut.add(customRunner: runner, with: [FrameImage.dummy(), FrameImage.dummy()])
         let writtenFiles = written.withLock(\.self)
         #expect(writtenFiles.map(\.url.lastPathComponent) == ["frame-0.png", "frame-1.png", "CUSTOM_RUNNERS.json"])
         #expect(writtenFiles.first?.data == Data("png".utf8))
@@ -406,5 +406,82 @@ struct RunnerServiceTests {
         let expectedJSON = #"[{"frameOrder":[0],"id":"other-runner","isTemplate":false,"name":"Other Runner"}]"#
         #expect(writtenJSON.withLock(\.self) == expectedJSON)
         #expect(removedURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/custom-runner") == true)
+    }
+
+    @Test
+    func move_customRunners_persists_new_order_and_reloads_bundle_list() throws {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let storedJSON = AllocatedUnfairLock<String>(initialState: """
+            [
+              {
+                "id": "first-runner",
+                "name": "First Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              },
+              {
+                "id": "second-runner",
+                "name": "Second Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              }
+            ]
+            """)
+        let sut = RunnerService(.testDependencies(
+            appStateClient: .testDependency(appState),
+            dataClient: testDependency(of: DataClient.self) {
+                $0.read = { url in
+                    url.hasPathSuffix("CUSTOM_RUNNERS.json")
+                        ? Data(storedJSON.withLock(\.self).utf8)
+                        : Data("frame".utf8)
+                }
+                $0.write = { data, url in
+                    if url.hasPathSuffix("CUSTOM_RUNNERS.json") {
+                        storedJSON.withLock { $0 = String(decoding: data, as: UTF8.self) }
+                    }
+                }
+            },
+            fileManagerClient: testDependency(of: FileManagerClient.self) {
+                $0.fileExists = { _ in true }
+            }
+        ))
+        try sut.move(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        let expectedJSON = #"[{"frameOrder":[0],"id":"second-runner","isTemplate":false,"name":"Second Runner"},"#
+            + #"{"frameOrder":[0],"id":"first-runner","isTemplate":false,"name":"First Runner"}]"#
+        #expect(storedJSON.withLock(\.self) == expectedJSON)
+        let bundleList = appState.withLock(\.runnerBundleLists.latestValue)
+        #expect(bundleList?.suffix(2).map(\.runner.id) == ["second-runner", "first-runner"])
+    }
+
+    @Test
+    func move_customRunners_throws_when_saving_fails() {
+        let json = """
+            [
+              {
+                "id": "first-runner",
+                "name": "First Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              },
+              {
+                "id": "second-runner",
+                "name": "Second Runner",
+                "isTemplate": false,
+                "frameOrder": [0]
+              }
+            ]
+            """
+        let sut = RunnerService(.testDependencies(
+            dataClient: testDependency(of: DataClient.self) {
+                $0.read = { _ in Data(json.utf8) }
+                $0.write = { _, _ in throw URLError(.unknown) }
+            },
+            fileManagerClient: testDependency(of: FileManagerClient.self) {
+                $0.fileExists = { _ in true }
+            }
+        ))
+        #expect(throws: URLError.self) {
+            try sut.move(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        }
     }
 }

@@ -24,6 +24,7 @@ public enum CriticalEvent {
     case setupFailed(any Error)
     case savingCustomRunnerFailed(any Error)
     case deletingCustomRunnerFailed(any Error)
+    case sortingCustomRunnersFailed(any Error)
     case unknown(any Error)
 
     public var message: Logger.Message {
@@ -34,6 +35,8 @@ public enum CriticalEvent {
             "Failed saving custom runner."
         case .deletingCustomRunnerFailed:
             "Failed deleting custom runner."
+        case .sortingCustomRunnersFailed:
+            "Failed sorting custom runners."
         case .unknown:
             "An unknown error has occurred."
         }
@@ -44,6 +47,7 @@ public enum CriticalEvent {
         case let .setupFailed(error),
             let .savingCustomRunnerFailed(error),
             let .deletingCustomRunnerFailed(error),
+            let .sortingCustomRunnersFailed(error),
             let .unknown(error):
             ["cause": "\(error.localizedDescription)"]
         }
