@@ -55,100 +55,6 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_addCustomMetricsSourceButtonTapped_shows_file_importer() async {
-        let sut = CustomMetricsSettings(.testDependencies())
-        await sut.send(.addCustomMetricsSourceButtonTapped)
-        #expect(sut.showingFileImporter == true)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_success_appends_source_and_emits_change() async {
-        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
-        let storage = UserDefaultsClient.storage()
-        let fileURL = URL(filePath: "/tmp/metrics.json")
-        let json = #"{ "title": "Imported", "metrics": [], "lastUpdatedDate": "2026-06-05T04:50:40Z" }"#
-        let dataClient = testDependency(of: DataClient.self) {
-            $0.read = { _ in Data(json.utf8) }
-        }
-        let urlClient = testDependency(of: URLClient.self) {
-            $0.startAccessingSecurityScopedResource = { _ in true }
-            $0.stopAccessingSecurityScopedResource = { _ in }
-            $0.bookmarkData = { _, _ in Data([0xAB]) }
-        }
-        let sut = CustomMetricsSettings(.testDependencies(
-            appStateClient: .testDependency(appState),
-            dataClient: dataClient,
-            urlClient: urlClient,
-            userDefaultsClient: storage.client
-        ))
-        await sut.send(.onCompletionFileImporter(.success(fileURL)))
-        #expect(sut.customMetricsSources.count == 1)
-        #expect(sut.customMetricsSources.first?.displayName == "Imported")
-        #expect(sut.customMetricsSources.first?.bookmark == Data([0xAB]))
-        #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) != nil)
-    }
-
-    @MainActor @Test
-    func send_helpButtonTapped_shows_help_popover() async {
-        let sut = CustomMetricsSettings(.testDependencies())
-        await sut.send(.helpButtonTapped)
-        #expect(sut.showingHelpPopover == true)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_forwards_error_when_file_is_unreadable() async {
-        let storage = UserDefaultsClient.storage()
-        let recorder = errorRecorder()
-        let sut = CustomMetricsSettings(
-            .testDependencies(
-                dataClient: testDependency(of: DataClient.self) {
-                    $0.read = { _ in throw URLError(.unknown) }
-                },
-                urlClient: testDependency(of: URLClient.self) {
-                    $0.startAccessingSecurityScopedResource = { _ in true }
-                },
-                userDefaultsClient: storage.client
-            ),
-            action: recorder.action
-        )
-        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
-        #expect(recorder.lock.withLock(\.self) == .customMetrics(.fileUnreadable))
-        #expect(sut.customMetricsSources.isEmpty)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_forwards_error_when_json_is_invalid() async {
-        let storage = UserDefaultsClient.storage()
-        let recorder = errorRecorder()
-        let sut = CustomMetricsSettings(
-            .testDependencies(
-                dataClient: testDependency(of: DataClient.self) {
-                    $0.read = { _ in Data("not json".utf8) }
-                },
-                urlClient: testDependency(of: URLClient.self) {
-                    $0.startAccessingSecurityScopedResource = { _ in true }
-                },
-                userDefaultsClient: storage.client
-            ),
-            action: recorder.action
-        )
-        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
-        #expect(recorder.lock.withLock(\.self) == .customMetrics(.invalidFormat))
-        #expect(sut.customMetricsSources.isEmpty)
-    }
-
-    @MainActor @Test
-    func send_onCompletionFileImporter_failure_does_not_throw() async {
-        struct DummyError: Error {}
-        let storage = UserDefaultsClient.storage()
-        let sut = CustomMetricsSettings(.testDependencies(
-            userDefaultsClient: storage.client
-        ))
-        await sut.send(.onCompletionFileImporter(.failure(DummyError())))
-        #expect(sut.customMetricsSources.isEmpty)
-    }
-
-    @MainActor @Test
     func send_removeCustomMetricsSourceButtonTapped_marks_pending_and_shows_dialog() async {
         let existingID = UUID(2)
         let storage = UserDefaultsClient.storage(initialSources: [
@@ -167,70 +73,6 @@ struct CustomMetricsSettingsTests {
         await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
         #expect(sut.pendingRemovalSourceID == existingID)
         #expect(sut.showingConfirmationDialog == true)
-        #expect(sut.customMetricsSources.count == 1)
-    }
-
-    @MainActor @Test
-    func send_removingCustomMetricsSourceConfirmed_removes_pending_source() async {
-        let existingID = UUID(3)
-        let storage = UserDefaultsClient.storage(initialSources: [
-            CustomMetricsSource(
-                id: existingID,
-                displayName: "Doomed",
-                fileURL: URL(filePath: "/tmp/doomed.json"),
-                bookmark: Data(),
-                createdAt: Date(timeIntervalSince1970: 0)
-            )
-        ])
-        let sut = CustomMetricsSettings(.testDependencies(
-            userDefaultsClient: storage.client
-        ))
-        await sut.send(.task)
-        await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
-        await sut.send(.removingCustomMetricsSourceConfirmed)
-        #expect(sut.customMetricsSources.isEmpty)
-        #expect(sut.pendingRemovalSourceID == nil)
-    }
-
-    @MainActor @Test
-    func send_removingCustomMetricsSourceConfirmed_with_no_pending_is_noop() async {
-        let existingID = UUID(4)
-        let storage = UserDefaultsClient.storage(initialSources: [
-            CustomMetricsSource(
-                id: existingID,
-                displayName: "Safe",
-                fileURL: URL(filePath: "/tmp/safe.json"),
-                bookmark: Data(),
-                createdAt: Date(timeIntervalSince1970: 0)
-            )
-        ])
-        let sut = CustomMetricsSettings(.testDependencies(
-            userDefaultsClient: storage.client
-        ))
-        await sut.send(.task)
-        await sut.send(.removingCustomMetricsSourceConfirmed)
-        #expect(sut.customMetricsSources.count == 1)
-    }
-
-    @MainActor @Test
-    func send_removingCustomMetricsSourceCancelled_clears_pending_without_removing() async {
-        let existingID = UUID(5)
-        let storage = UserDefaultsClient.storage(initialSources: [
-            CustomMetricsSource(
-                id: existingID,
-                displayName: "Spared",
-                fileURL: URL(filePath: "/tmp/spared.json"),
-                bookmark: Data(),
-                createdAt: Date(timeIntervalSince1970: 0)
-            )
-        ])
-        let sut = CustomMetricsSettings(.testDependencies(
-            userDefaultsClient: storage.client
-        ))
-        await sut.send(.task)
-        await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
-        await sut.send(.removingCustomMetricsSourceCancelled)
-        #expect(sut.pendingRemovalSourceID == nil)
         #expect(sut.customMetricsSources.count == 1)
     }
 
@@ -332,5 +174,192 @@ struct CustomMetricsSettingsTests {
         await sut.send(.customMetricsSourceLinkTapped(source))
         #expect(activatedURLs.withLock(\.self).isEmpty)
         #expect(recorder.lock.withLock(\.self) == .customMetrics(.fileUnreadable))
+    }
+
+    @MainActor @Test
+    func send_onMoveCustomMetricsSourceRow_reorders_sources_and_emits_change() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let storage = UserDefaultsClient.storage(initialSources: [
+            CustomMetricsSource(
+                id: UUID(9),
+                displayName: "First",
+                fileURL: URL(filePath: "/tmp/first.json"),
+                bookmark: Data(),
+                createdAt: Date(timeIntervalSince1970: 0)
+            ),
+            CustomMetricsSource(
+                id: UUID(10),
+                displayName: "Second",
+                fileURL: URL(filePath: "/tmp/second.json"),
+                bookmark: Data(),
+                createdAt: Date(timeIntervalSince1970: 0)
+            ),
+        ])
+        let sut = CustomMetricsSettings(.testDependencies(
+            appStateClient: .testDependency(appState),
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.onMoveCustomMetricsSourceRow(IndexSet(integer: 1), 0))
+        #expect(sut.customMetricsSources.map(\.id) == [UUID(10), UUID(9)])
+        #expect(storage.currentConfiguration()?.sources.map(\.id) == [UUID(10), UUID(9)])
+        #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) != nil)
+    }
+
+    @MainActor @Test
+    func send_addCustomMetricsSourceButtonTapped_shows_file_importer() async {
+        let sut = CustomMetricsSettings(.testDependencies())
+        await sut.send(.addCustomMetricsSourceButtonTapped)
+        #expect(sut.showingFileImporter == true)
+    }
+
+    @MainActor @Test
+    func send_helpButtonTapped_shows_help_popover() async {
+        let sut = CustomMetricsSettings(.testDependencies())
+        await sut.send(.helpButtonTapped)
+        #expect(sut.showingHelpPopover == true)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_success_appends_source_and_emits_change() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let storage = UserDefaultsClient.storage()
+        let fileURL = URL(filePath: "/tmp/metrics.json")
+        let json = #"{ "title": "Imported", "metrics": [], "lastUpdatedDate": "2026-06-05T04:50:40Z" }"#
+        let dataClient = testDependency(of: DataClient.self) {
+            $0.read = { _ in Data(json.utf8) }
+        }
+        let urlClient = testDependency(of: URLClient.self) {
+            $0.startAccessingSecurityScopedResource = { _ in true }
+            $0.stopAccessingSecurityScopedResource = { _ in }
+            $0.bookmarkData = { _, _ in Data([0xAB]) }
+        }
+        let sut = CustomMetricsSettings(.testDependencies(
+            appStateClient: .testDependency(appState),
+            dataClient: dataClient,
+            urlClient: urlClient,
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.onCompletionFileImporter(.success(fileURL)))
+        #expect(sut.customMetricsSources.count == 1)
+        #expect(sut.customMetricsSources.first?.displayName == "Imported")
+        #expect(sut.customMetricsSources.first?.bookmark == Data([0xAB]))
+        #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) != nil)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_forwards_error_when_file_is_unreadable() async {
+        let storage = UserDefaultsClient.storage()
+        let recorder = errorRecorder()
+        let sut = CustomMetricsSettings(
+            .testDependencies(
+                dataClient: testDependency(of: DataClient.self) {
+                    $0.read = { _ in throw URLError(.unknown) }
+                },
+                urlClient: testDependency(of: URLClient.self) {
+                    $0.startAccessingSecurityScopedResource = { _ in true }
+                },
+                userDefaultsClient: storage.client
+            ),
+            action: recorder.action
+        )
+        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
+        #expect(recorder.lock.withLock(\.self) == .customMetrics(.fileUnreadable))
+        #expect(sut.customMetricsSources.isEmpty)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_forwards_error_when_json_is_invalid() async {
+        let storage = UserDefaultsClient.storage()
+        let recorder = errorRecorder()
+        let sut = CustomMetricsSettings(
+            .testDependencies(
+                dataClient: testDependency(of: DataClient.self) {
+                    $0.read = { _ in Data("not json".utf8) }
+                },
+                urlClient: testDependency(of: URLClient.self) {
+                    $0.startAccessingSecurityScopedResource = { _ in true }
+                },
+                userDefaultsClient: storage.client
+            ),
+            action: recorder.action
+        )
+        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
+        #expect(recorder.lock.withLock(\.self) == .customMetrics(.invalidFormat))
+        #expect(sut.customMetricsSources.isEmpty)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_failure_does_not_throw() async {
+        struct DummyError: Error {}
+        let storage = UserDefaultsClient.storage()
+        let sut = CustomMetricsSettings(.testDependencies(
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.onCompletionFileImporter(.failure(DummyError())))
+        #expect(sut.customMetricsSources.isEmpty)
+    }
+
+    @MainActor @Test
+    func send_removingCustomMetricsSourceConfirmed_removes_pending_source() async {
+        let existingID = UUID(3)
+        let storage = UserDefaultsClient.storage(initialSources: [
+            CustomMetricsSource(
+                id: existingID,
+                displayName: "Doomed",
+                fileURL: URL(filePath: "/tmp/doomed.json"),
+                bookmark: Data(),
+                createdAt: Date(timeIntervalSince1970: 0)
+            )
+        ])
+        let sut = CustomMetricsSettings(.testDependencies(
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.task)
+        await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
+        await sut.send(.removingCustomMetricsSourceConfirmed)
+        #expect(sut.customMetricsSources.isEmpty)
+        #expect(sut.pendingRemovalSourceID == nil)
+    }
+
+    @MainActor @Test
+    func send_removingCustomMetricsSourceConfirmed_with_no_pending_is_noop() async {
+        let existingID = UUID(4)
+        let storage = UserDefaultsClient.storage(initialSources: [
+            CustomMetricsSource(
+                id: existingID,
+                displayName: "Safe",
+                fileURL: URL(filePath: "/tmp/safe.json"),
+                bookmark: Data(),
+                createdAt: Date(timeIntervalSince1970: 0)
+            )
+        ])
+        let sut = CustomMetricsSettings(.testDependencies(
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.task)
+        await sut.send(.removingCustomMetricsSourceConfirmed)
+        #expect(sut.customMetricsSources.count == 1)
+    }
+
+    @MainActor @Test
+    func send_removingCustomMetricsSourceCancelled_clears_pending_without_removing() async {
+        let existingID = UUID(5)
+        let storage = UserDefaultsClient.storage(initialSources: [
+            CustomMetricsSource(
+                id: existingID,
+                displayName: "Spared",
+                fileURL: URL(filePath: "/tmp/spared.json"),
+                bookmark: Data(),
+                createdAt: Date(timeIntervalSince1970: 0)
+            )
+        ])
+        let sut = CustomMetricsSettings(.testDependencies(
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.task)
+        await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
+        await sut.send(.removingCustomMetricsSourceCancelled)
+        #expect(sut.pendingRemovalSourceID == nil)
+        #expect(sut.customMetricsSources.count == 1)
     }
 }

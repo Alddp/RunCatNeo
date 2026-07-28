@@ -82,6 +82,12 @@ struct CustomMetricsService {
         userDefaultsRepository.metricsBarConfiguration = metricsBarConfiguration
     }
 
+    func moveSources(fromOffsets source: IndexSet, toOffset destination: Int) {
+        var configuration = userDefaultsRepository.customMetricsConfiguration
+        configuration.sources.move(fromOffsets: source, toOffset: destination)
+        userDefaultsRepository.customMetricsConfiguration = configuration
+    }
+
     func perform(action: (_ securityScopedURL: URL) -> Void, for source: CustomMetricsSource) throws {
         let (isStale, url) = try urlClient.create(source.bookmark, .withSecurityScope)
         if isStale, let refreshed = try? urlClient.bookmarkData(url, .withSecurityScope) {

@@ -81,6 +81,25 @@ public final class CustomMetricsSettings: Composable {
             task?.cancel()
             task = nil
 
+        case let .removeCustomMetricsSourceButtonTapped(id):
+            pendingRemovalSourceID = id
+            showingConfirmationDialog = true
+
+        case let .customMetricsSourceLinkTapped(source):
+            do {
+                try customMetricsService.perform(
+                    action: { nsWorkspaceClient.activateFileViewerSelecting([$0]) },
+                    for: source
+                )
+            } catch {
+                await send(.onError(.customMetrics(.fileUnreadable)))
+            }
+
+        case let .onMoveCustomMetricsSourceRow(indexSet, offset):
+            customMetricsService.moveSources(fromOffsets: indexSet, toOffset: offset)
+            customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
+            customMetricsService.emitConfigurationChange()
+
         case .addCustomMetricsSourceButtonTapped:
             showingFileImporter = true
 
@@ -101,10 +120,6 @@ public final class CustomMetricsSettings: Composable {
         case let .onCompletionFileImporter(.failure(error)):
             logService.error(.importingCustomMetricsSourceFailed(error))
 
-        case let .removeCustomMetricsSourceButtonTapped(id):
-            pendingRemovalSourceID = id
-            showingConfirmationDialog = true
-
         case .removingCustomMetricsSourceConfirmed:
             guard let sourceID = pendingRemovalSourceID else { return }
             customMetricsService.removeSource(of: sourceID)
@@ -114,16 +129,6 @@ public final class CustomMetricsSettings: Composable {
 
         case .removingCustomMetricsSourceCancelled:
             pendingRemovalSourceID = nil
-
-        case let .customMetricsSourceLinkTapped(source):
-            do {
-                try customMetricsService.perform(
-                    action: { nsWorkspaceClient.activateFileViewerSelecting([$0]) },
-                    for: source
-                )
-            } catch {
-                await send(.onError(.customMetrics(.fileUnreadable)))
-            }
 
         case .onError:
             return
@@ -144,13 +149,14 @@ public final class CustomMetricsSettings: Composable {
     public enum Action: Sendable {
         case task
         case onDisappear
+        case removeCustomMetricsSourceButtonTapped(UUID)
+        case customMetricsSourceLinkTapped(CustomMetricsSource)
+        case onMoveCustomMetricsSourceRow(IndexSet, Int)
         case addCustomMetricsSourceButtonTapped
         case helpButtonTapped
         case onCompletionFileImporter(Result<URL, any Error>)
-        case removeCustomMetricsSourceButtonTapped(UUID)
         case removingCustomMetricsSourceConfirmed
         case removingCustomMetricsSourceCancelled
-        case customMetricsSourceLinkTapped(CustomMetricsSource)
         case onError(RCNError)
     }
 }

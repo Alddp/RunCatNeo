@@ -118,7 +118,7 @@ struct RunnerService {
         return Frame.custom(data)
     }
 
-    func save(customRunner runner: Runner, with frameImages: [FrameImage]) throws {
+    func add(customRunner runner: Runner, with frameImages: [FrameImage]) throws {
         let imageDataList: [Data] = try frameImages.map {
             try dataClient.convert($0.cgImage, .png)
         }
@@ -140,6 +140,13 @@ struct RunnerService {
         runners.removeAll { $0 == runner }
         try applicationSupportRepository.saveCustomRunners(runners)
         applicationSupportRepository.delete(directory: runner.id)
+        loadRunnerBundleList()
+    }
+
+    func move(fromOffsets source: IndexSet, toOffset destination: Int) throws {
+        var runners = applicationSupportRepository.loadCustomRunners()
+        runners.move(fromOffsets: source, toOffset: destination)
+        try applicationSupportRepository.saveCustomRunners(runners)
         loadRunnerBundleList()
     }
 }

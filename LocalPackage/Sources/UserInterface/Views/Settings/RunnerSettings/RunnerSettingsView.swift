@@ -34,7 +34,7 @@ struct RunnerSettingsView: View {
                 )) {
                     ForEach(store.runnerBundleList, id: \.runner) { runnerBundle in
                         Label {
-                            runnerBundle.runner.displayText
+                            Text(runnerBundle.runner.formatted)
                         } icon: {
                             runnerBundle.thumbnail
                         }

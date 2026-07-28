@@ -26,17 +26,24 @@ struct CustomMetricsSettingsSectionView: View {
 
     var body: some View {
         Section {
-            ForEach(store.customMetricsSources) { source in
-                CustomMetricsSourceRowView(
-                    source: source,
-                    isErrorDetected: store.failedCustomMetricsSourceIDs.contains(source.id),
-                    removeButtonTapped: {
-                        await store.send(.removeCustomMetricsSourceButtonTapped(source.id))
-                    },
-                    sourceLinkTapped: {
-                        await store.send(.customMetricsSourceLinkTapped(source))
+            List {
+                ForEach(store.customMetricsSources) { source in
+                    CustomMetricsSourceRowView(
+                        source: source,
+                        isErrorDetected: store.failedCustomMetricsSourceIDs.contains(source.id),
+                        removeButtonTapped: {
+                            await store.send(.removeCustomMetricsSourceButtonTapped(source.id))
+                        },
+                        sourceLinkTapped: {
+                            await store.send(.customMetricsSourceLinkTapped(source))
+                        }
+                    )
+                }
+                .onMove { indexSet, offset in
+                    Task {
+                        await store.send(.onMoveCustomMetricsSourceRow(indexSet, offset))
                     }
-                )
+                }
             }
             HStack {
                 Spacer()
