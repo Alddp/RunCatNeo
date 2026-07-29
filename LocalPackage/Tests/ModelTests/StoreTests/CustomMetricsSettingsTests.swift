@@ -239,7 +239,7 @@ struct CustomMetricsSettingsTests {
             urlClient: urlClient,
             userDefaultsClient: storage.client
         ))
-        await sut.send(.onCompletionFileImporter(.success(fileURL)))
+        await sut.send(.onCompletionFileImporter(.success([fileURL])))
         #expect(sut.customMetricsSources.count == 1)
         #expect(sut.customMetricsSources.first?.displayName == "Imported")
         #expect(sut.customMetricsSources.first?.bookmark == Data([0xAB]))
@@ -262,7 +262,7 @@ struct CustomMetricsSettingsTests {
             ),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
+        await sut.send(.onCompletionFileImporter(.success([URL(filePath: "/tmp/metrics.json")])))
         #expect(recorder.lock.withLock(\.self) == .customMetrics(.fileUnreadable))
         #expect(sut.customMetricsSources.isEmpty)
     }
@@ -283,9 +283,22 @@ struct CustomMetricsSettingsTests {
             ),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success(URL(filePath: "/tmp/metrics.json"))))
+        await sut.send(.onCompletionFileImporter(.success([URL(filePath: "/tmp/metrics.json")])))
         #expect(recorder.lock.withLock(\.self) == .customMetrics(.invalidFormat))
         #expect(sut.customMetricsSources.isEmpty)
+    }
+
+    @MainActor @Test
+    func send_onCompletionFileImporter_success_without_url_is_noop() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let storage = UserDefaultsClient.storage()
+        let sut = CustomMetricsSettings(.testDependencies(
+            appStateClient: .testDependency(appState),
+            userDefaultsClient: storage.client
+        ))
+        await sut.send(.onCompletionFileImporter(.success([])))
+        #expect(sut.customMetricsSources.isEmpty)
+        #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) == nil)
     }
 
     @MainActor @Test
