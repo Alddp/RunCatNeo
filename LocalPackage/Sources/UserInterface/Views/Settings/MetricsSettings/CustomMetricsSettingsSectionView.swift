@@ -81,44 +81,45 @@ struct CustomMetricsSettingsSectionView: View {
                     .frame(maxWidth: 360, alignment: .leading)
                 }
             }
+            .fileImporter(
+                isPresented: $store.showingFileImporter,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false,
+                onCompletion: { result in
+                    Task {
+                        await store.send(.onCompletionFileImporter(result))
+                    }
+                }
+            )
+            .fileDialogMessage(Text("chooseJsonFile", bundle: .module))
+            .fileDialogConfirmationLabel(Text("add", bundle: .module))
+            .confirmationDialog(
+                Text("removeCustomMetrics", bundle: .module),
+                isPresented: $store.showingConfirmationDialog,
+                presenting: store.pendingRemovalSourceID,
+                actions: { sourceID in
+                    Button(role: .destructive) {
+                        Task {
+                            await store.send(.removingCustomMetricsSourceConfirmed)
+                        }
+                    } label: {
+                        Text("remove", bundle: .module)
+                    }
+                    Button(role: .cancel) {
+                        Task {
+                            await store.send(.removingCustomMetricsSourceCancelled)
+                        }
+                    } label: {
+                        Text("cancel", bundle: .module)
+                    }
+                },
+                message: { _ in
+                    Text("customMetricsConfirmationMessage", bundle: .module)
+                }
+            )
         } header: {
             Text("customMetrics", bundle: .module)
         }
-        .fileImporter(
-            isPresented: $store.showingFileImporter,
-            allowedContentTypes: [.json],
-            onCompletion: { result in
-                Task {
-                    await store.send(.onCompletionFileImporter(result))
-                }
-            }
-        )
-        .fileDialogMessage(Text("chooseJsonFile", bundle: .module))
-        .fileDialogConfirmationLabel(Text("add", bundle: .module))
-        .confirmationDialog(
-            Text("removeCustomMetrics", bundle: .module),
-            isPresented: $store.showingConfirmationDialog,
-            presenting: store.pendingRemovalSourceID,
-            actions: { sourceID in
-                Button(role: .destructive) {
-                    Task {
-                        await store.send(.removingCustomMetricsSourceConfirmed)
-                    }
-                } label: {
-                    Text("remove", bundle: .module)
-                }
-                Button(role: .cancel) {
-                    Task {
-                        await store.send(.removingCustomMetricsSourceCancelled)
-                    }
-                } label: {
-                    Text("cancel", bundle: .module)
-                }
-            },
-            message: { _ in
-                Text("customMetricsConfirmationMessage", bundle: .module)
-            }
-        )
         .task {
             await store.send(.task)
         }

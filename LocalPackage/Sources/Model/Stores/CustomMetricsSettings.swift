@@ -106,7 +106,8 @@ public final class CustomMetricsSettings: Composable {
         case .helpButtonTapped:
             showingHelpPopover = true
 
-        case let .onCompletionFileImporter(.success(url)):
+        case let .onCompletionFileImporter(.success(urls)):
+            guard let url = urls.first else { return }
             do {
                 try customMetricsService.addSource(of: url)
                 customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
@@ -154,7 +155,7 @@ public final class CustomMetricsSettings: Composable {
         case onMoveCustomMetricsSourceRow(IndexSet, Int)
         case addCustomMetricsSourceButtonTapped
         case helpButtonTapped
-        case onCompletionFileImporter(Result<URL, any Error>)
+        case onCompletionFileImporter(Result<[URL], any Error>)
         case removingCustomMetricsSourceConfirmed
         case removingCustomMetricsSourceCancelled
         case onError(RCNError)
