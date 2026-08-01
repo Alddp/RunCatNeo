@@ -40,7 +40,8 @@ extension NSImage {
         size = CGSize(width: size.width / scale, height: size.height / scale)
     }
 
-    func flip() {
+    func flip(enabled: Bool) {
+        guard enabled else { return }
         let filter = CIFilter.perspectiveRotate()
         filter.inputImage = ciImage
         filter.pitch = .pi

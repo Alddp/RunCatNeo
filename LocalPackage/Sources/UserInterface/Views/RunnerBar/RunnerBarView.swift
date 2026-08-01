@@ -21,13 +21,25 @@
 import Model
 import SwiftUI
 
+// The runner is animated by a CAKeyframeAnimation on `runnerLayer` instead of swapping the
+// MenuBarExtra icon frame by frame. Every icon swap makes the menu bar snapshot the status item in
+// both light and dark appearance for the other monitors, which measured 7-8% CPU constantly when
+// this was last profiled, against about 0.1% for the layer-based animation.
+//
+// The trade-off is that the animation renders only on the active monitor, leaving an empty gap on
+// the others, so `iconImage` is drawn as a static fallback. On the active monitor `backgroundLayer`
+// erases it again via sourceOutCompositing, so the two never overlap. That filter does not work on
+// Intel Macs, where `backgroundLayer` is therefore not installed and the gap stays empty.
 struct RunnerBarView: View {
     @StateObject var store: RunnerBar
 
     private var iconImage: NSImage {
+#if arch(arm64)
+        let icon = store.icon
+#endif
         let nsImage = NSImage(size: store.size, flipped: true) { rect in
 #if arch(arm64)
-            store.icon?.draw(in: rect)
+            icon?.draw(in: rect)
 #endif
             return true
         }
