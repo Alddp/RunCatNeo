@@ -24,17 +24,20 @@ import SwiftUI
 struct CustomMetricsCardView: View {
     var snapshot: CustomMetricsSnapshot
     var isFailed: Bool
+    var displayedDate: Date
 
-    init(customMetricsBundle: CustomMetricsBundle) {
+    init(customMetricsBundle: CustomMetricsBundle, displayedDate: Date) {
         self.snapshot = customMetricsBundle.snapshot
         self.isFailed = customMetricsBundle.isFailed
+        self.displayedDate = displayedDate
     }
 
     private var lastUpdatedDetail: String {
         if isFailed {
             String(localized: "failed", bundle: .module)
         } else {
-            snapshot.lastUpdatedDate.formatted(.relative(presentation: .named))
+            Date.AnchoredRelativeFormatStyle(anchor: snapshot.lastUpdatedDate, presentation: .named)
+                .format(displayedDate)
         }
     }
 
