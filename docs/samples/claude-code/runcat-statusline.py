@@ -11,8 +11,8 @@ Writes ~/.claude/runcat-usage.json shaped like:
       "metrics": [
         {"title": "Model",   "formattedValue": "Opus 4.7"},
         {"title": "Context", "formattedValue": "67%", "normalizedValue": 0.67},
-        {"title": "5h",      "formattedValue": "3% (~14:30)",  "normalizedValue": 0.03},
-        {"title": "7d",      "formattedValue": "3% (~7/22 03:00)",  "normalizedValue": 0.03}
+        {"title": "5h",      "formattedValue": "3% (~14:30)", "normalizedValue": 0.03},
+        {"title": "7d",      "formattedValue": "3% (~7/22 03:00)", "normalizedValue": 0.03}
       ],
       "lastUpdatedDate": "2026-06-07T05:55:36Z"
     }
@@ -36,14 +36,14 @@ def pct(title, value, reset=None):
 
 
 def format_reset(epoch_seconds):
-    if epoch_seconds is None:
+    try:
+        reset = datetime.fromtimestamp(epoch_seconds)
+    except (TypeError, ValueError, OSError, OverflowError):
         return None
-    now = datetime.now().astimezone()
-    reset = datetime.fromtimestamp(epoch_seconds).astimezone()
-    hm = reset.strftime("%H:%M")
-    if reset.date() == now.date():
-        return f"~{hm}"
-    return f"~{reset.month}/{reset.day} {hm}"
+    hour_minute = reset.strftime("%H:%M")
+    if reset.date() == datetime.now().date():
+        return f"~{hour_minute}"
+    return f"~{reset.month}/{reset.day} {hour_minute}"
 
 
 try:
