@@ -112,17 +112,16 @@ public final class RunnerBar: Composable {
                 nil
             }
         }
+        let isFlippedHorizontally = userDefaultsRepository.isFlippedHorizontally
         icon = images.first?.plane
+        icon?.flip(enabled: isFlippedHorizontally)
         icon?.normalize()
         size = icon?.size ?? .zero
         eventBridge?.setSize(size)
-        let isFlippedHorizontally = userDefaultsRepository.isFlippedHorizontally
         isTemplate = runnerBundle.runner.isTemplate
         eventBridge?.setColor(tintColor, isTemplate)
         let imageFrames = images.map { image in
-            if isFlippedHorizontally {
-                image.flip()
-            }
+            image.flip(enabled: isFlippedHorizontally)
             image.normalize()
             image.isTemplate = isTemplate
             return image
