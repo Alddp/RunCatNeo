@@ -23,6 +23,15 @@ A minimal Python script that lets RunCat Neo's Custom Metrics card show your Cla
 4. Run Claude Code. The card updates each turn.
 5. Optional: click the Metrics Bar and flip the source's toggle to show the context usage (`metricsBarValue`) directly in the menu bar.
 
+## What it displays
+
+- **Model** — the model name Claude Code reports for the session.
+- **Context** — how much of the context window the latest API response used. This is also what `metricsBarValue` carries into the Metrics Bar.
+- **5h**, **7d** — how much of each rate-limit window is consumed, followed by when it resets: `3% (~14:30)` when the reset falls on the same day, `3% (~7/22 03:00)` when it crosses into another day.
+
+Claude Code reports rate limits only for Claude.ai subscriptions (Pro/Max), and only after the session's first API response, so the 5h and 7d rows are absent until then.
+Each window is reported independently, and one whose reset time is missing falls back to a plain percentage.
+
 ## Already have a statusLine?
 
 `~/.claude/settings.json` only allows a single `statusLine.command`, so combine yours and this one yourself. Asking Claude works well: "Here's my existing statusline script and the RunCat sample — write me one that does both" usually produces a clean merge in one shot.
