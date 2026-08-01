@@ -44,7 +44,7 @@ struct MetricsSettingsView: View {
                     get: { store.systemMetricsConfiguration.monitorsMemory },
                     asyncSet: { await store.send(.monitorsSystemMetricsToggleSwitched(.memory, $0)) }
                 )) {
-                    Text("enableMemoryPressureMonitoring", bundle: .module)
+                    Text("enableMemoryUsageMonitoring", bundle: .module)
                 }
                 Toggle(isOn: Binding<Bool>(
                     get: { store.systemMetricsConfiguration.monitorsStorage },
