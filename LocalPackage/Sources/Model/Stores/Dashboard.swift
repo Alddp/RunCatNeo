@@ -26,6 +26,7 @@ import SystemInfoKit
 @MainActor @Observable
 public final class Dashboard: Composable {
     private let appStateClient: AppStateClient
+    private let dateClient: DateClient
     private let nsAppClient: NSAppClient
     private let nsWorkspaceClient: NSWorkspaceClient
     private let userDefaultsRepository: UserDefaultsRepository
@@ -38,6 +39,7 @@ public final class Dashboard: Composable {
     public var cpuRingBuffer: RingBuffer
     public var memoryRingBuffer: RingBuffer
     public var customMetricsBundles: [CustomMetricsBundle]
+    public var displayedDate: Date
     public let isPreview: Bool
     public let action: (Action) async -> Void
 
@@ -48,10 +50,12 @@ public final class Dashboard: Composable {
         cpuRingBuffer: RingBuffer = .init(),
         memoryRingBuffer: RingBuffer = .init(),
         customMetricsBundles: [CustomMetricsBundle] = [],
+        displayedDate: Date? = nil,
         isPreview: Bool? = nil,
         action: @escaping (Action) async -> Void =  { _ in }
     ) {
         self.appStateClient = appDependencies.appStateClient
+        self.dateClient = appDependencies.dateClient
         self.nsAppClient = appDependencies.nsAppClient
         self.nsWorkspaceClient = appDependencies.nsWorkspaceClient
         self.userDefaultsRepository = .init(appDependencies.userDefaultsClient)
@@ -61,6 +65,7 @@ public final class Dashboard: Composable {
         self.cpuRingBuffer = cpuRingBuffer
         self.memoryRingBuffer = memoryRingBuffer
         self.customMetricsBundles = customMetricsBundles
+        self.displayedDate = displayedDate ?? dateClient.now()
         self.isPreview = isPreview ?? ProcessInfo.isPreview
         self.action = action
     }
@@ -69,6 +74,7 @@ public final class Dashboard: Composable {
         switch action {
         case let .task(screenName):
             logService.notice(.screenView(name: screenName))
+            displayedDate = dateClient.now()
             if let metrics = appStateClient.withLock(\.metrics.latestValue) {
                 updateMetrics(metrics)
             }

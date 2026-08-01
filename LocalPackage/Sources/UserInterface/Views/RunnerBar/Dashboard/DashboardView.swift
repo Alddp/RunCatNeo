@@ -47,7 +47,10 @@ struct DashboardView: View {
                 isPreview: store.isPreview
             )
             ForEach(store.customMetricsBundles) { customMetricsBundle in
-                CustomMetricsCardView(customMetricsBundle: customMetricsBundle)
+                CustomMetricsCardView(
+                    customMetricsBundle: customMetricsBundle,
+                    displayedDate: store.displayedDate
+                )
             }
         }
         .fixedSize()

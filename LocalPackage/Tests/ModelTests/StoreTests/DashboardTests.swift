@@ -23,6 +23,29 @@ struct DashboardTests {
     }
 
     @MainActor @Test
+    func send_task_refreshes_displayedDate_every_time_it_is_sent() async {
+        let dates = AllocatedUnfairLock<[Date]>(initialState: [
+            Date(timeIntervalSince1970: 1_000),
+            Date(timeIntervalSince1970: 2_000),
+        ])
+        let sut = Dashboard(
+            .testDependencies(
+                dateClient: testDependency(of: DateClient.self) {
+                    $0.now = { dates.withLock { $0.removeFirst() } }
+                }
+            ),
+            displayedDate: .distantPast
+        )
+        #expect(sut.displayedDate == .distantPast)
+        await sut.send(.task("DashboardTests"))
+        #expect(sut.displayedDate == Date(timeIntervalSince1970: 1_000))
+        await sut.send(.onDisappear)
+        await sut.send(.task("DashboardTests"))
+        #expect(sut.displayedDate == Date(timeIntervalSince1970: 2_000))
+        await sut.send(.onDisappear)
+    }
+
+    @MainActor @Test
     func send_onDisappear_stops_observing_metrics() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let sut = Dashboard(.testDependencies(appStateClient: .testDependency(appState)))
