@@ -53,7 +53,7 @@ Just a quick glance between tasks offers a moment of relaxation. Beyond cats, yo
 You can check the metrics you're interested in on the dashboard, which can be opened by clicking the menu bar.
 
 - CPU Usage
-- Memory Pressure
+- Memory Usage
 - Storage Capacity
 - Battery Status
 - Network Connectivity

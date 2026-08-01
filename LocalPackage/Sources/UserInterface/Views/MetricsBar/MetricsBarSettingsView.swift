@@ -38,7 +38,7 @@ struct MetricsBarSettingsView: View {
                     get: { store.metricsBarConfiguration.showsMemory },
                     asyncSet: { await store.send(.showsSystemMetricsToggleSwitched(.memory, $0)) }
                 )) {
-                    Text("showMemoryPressure", bundle: .module)
+                    Text("showMemoryUsage", bundle: .module)
                 }
                 Toggle(isOn: Binding<Bool>(
                     get: { store.metricsBarConfiguration.showsStorage },
