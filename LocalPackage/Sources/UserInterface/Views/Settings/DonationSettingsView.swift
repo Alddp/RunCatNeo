@@ -103,16 +103,16 @@ struct DonationSettingsView: View {
             message: { _ in }
         )
         .task {
-            await store.send(.task(String(describing: Self.self)))
+            await store.send(.viewAppeared(String(describing: Self.self)))
         }
         .storeProductsTask(for: DonationProduct.allCases.map(\.id)) { taskState in
-            await store.send(.onReceiveProductTaskState(taskState))
+            await store.send(.productTaskStateChanged(taskState))
         }
         .onInAppPurchaseCompletion { product, result in
-            await store.send(.onPurchaseCompleted(product, result))
+            await store.send(.purchaseResponse(product, result))
         }
         .subscriptionStatusTask(for: store.subscriptionGroupID) { taskState in
-            await store.send(.onReceiveSubscriptionTaskState(taskState))
+            await store.send(.subscriptionTaskStateChanged(taskState))
         }
     }
 }

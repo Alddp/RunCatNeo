@@ -48,9 +48,9 @@ struct RunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_customRunnerSettings_onError_shows_alert() async {
+    func send_customRunnerSettings_errorOccurred_shows_alert() async {
         let sut = RunnerSettings(.testDependencies())
-        await sut.send(.customRunnerSettings(.onError(.customRunner(.loadingFailed))))
+        await sut.send(.customRunnerSettings(.errorOccurred(.customRunner(.loadingFailed))))
         #expect(sut.error == .customRunner(.loadingFailed))
         #expect(sut.showingAlert == true)
     }

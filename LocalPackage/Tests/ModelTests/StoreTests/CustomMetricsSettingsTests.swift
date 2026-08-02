@@ -12,7 +12,7 @@ struct CustomMetricsSettingsTests {
     ) {
         let lock = AllocatedUnfairLock<RCNError?>(initialState: nil)
         let action: (CustomMetricsSettings.Action) async -> Void = { action in
-            if case let .onError(error) = action {
+            if case let .errorOccurred(error) = action {
                 lock.withLock { $0 = error }
             }
         }
@@ -20,23 +20,23 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_task_refreshes_failed_source_ids_when_metrics_change() async {
+    func send_viewAppeared_refreshes_failed_source_ids_when_metrics_change() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let snapshot = CustomMetricsSnapshot(title: "Card", lastUpdatedDate: Date(timeIntervalSince1970: 0))
         let failedBundle = CustomMetricsBundle(id: UUID(1), snapshot: snapshot, isFailed: true)
         appState.withLock { $0.metrics.send(Metrics(customMetricsBundles: [failedBundle])) }
         let sut = CustomMetricsSettings(.testDependencies(appStateClient: .testDependency(appState)))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         #expect(sut.failedCustomMetricsSourceIDs == [UUID(1)])
         let recoveredBundle = CustomMetricsBundle(id: UUID(1), snapshot: snapshot, isFailed: false)
         appState.withLock { $0.metrics.send(Metrics(customMetricsBundles: [recoveredBundle])) }
         await waitUntil { sut.failedCustomMetricsSourceIDs.isEmpty }
         #expect(sut.failedCustomMetricsSourceIDs.isEmpty)
-        await sut.send(.onDisappear)
+        await sut.send(.viewDisappeared)
     }
 
     @MainActor @Test
-    func send_task_reloads_customMetricsSources_from_user_defaults() async {
+    func send_viewAppeared_reloads_customMetricsSources_from_user_defaults() async {
         let storage = UserDefaultsClient.storage(initialSources: [
             CustomMetricsSource(
                 id: UUID(1),
@@ -49,7 +49,7 @@ struct CustomMetricsSettingsTests {
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         #expect(sut.customMetricsSources.count == 1)
         #expect(sut.customMetricsSources.first?.displayName == "Existing")
     }
@@ -69,7 +69,7 @@ struct CustomMetricsSettingsTests {
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
         #expect(sut.pendingRemovalSourceID == existingID)
         #expect(sut.showingConfirmationDialog == true)
@@ -177,7 +177,7 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_onMoveCustomMetricsSourceRow_reorders_sources_and_emits_change() async {
+    func send_customMetricsSourceRowMoved_reorders_sources_and_emits_change() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage(initialSources: [
             CustomMetricsSource(
@@ -199,7 +199,7 @@ struct CustomMetricsSettingsTests {
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.onMoveCustomMetricsSourceRow(IndexSet(integer: 1), 0))
+        await sut.send(.customMetricsSourceRowMoved(IndexSet(integer: 1), 0))
         #expect(sut.customMetricsSources.map(\.id) == [UUID(10), UUID(9)])
         #expect(storage.currentConfiguration()?.sources.map(\.id) == [UUID(10), UUID(9)])
         #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) != nil)
@@ -220,7 +220,7 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_success_appends_source_and_emits_change() async {
+    func send_fileImporterResponse_success_appends_source_and_emits_change() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage()
         let fileURL = URL(filePath: "/tmp/metrics.json")
@@ -239,7 +239,7 @@ struct CustomMetricsSettingsTests {
             urlClient: urlClient,
             userDefaultsClient: storage.client
         ))
-        await sut.send(.onCompletionFileImporter(.success([fileURL])))
+        await sut.send(.fileImporterResponse(.success([fileURL])))
         #expect(sut.customMetricsSources.count == 1)
         #expect(sut.customMetricsSources.first?.displayName == "Imported")
         #expect(sut.customMetricsSources.first?.bookmark == Data([0xAB]))
@@ -247,7 +247,7 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_forwards_error_when_file_is_unreadable() async {
+    func send_fileImporterResponse_forwards_error_when_file_is_unreadable() async {
         let storage = UserDefaultsClient.storage()
         let recorder = errorRecorder()
         let sut = CustomMetricsSettings(
@@ -262,13 +262,13 @@ struct CustomMetricsSettingsTests {
             ),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success([URL(filePath: "/tmp/metrics.json")])))
+        await sut.send(.fileImporterResponse(.success([URL(filePath: "/tmp/metrics.json")])))
         #expect(recorder.lock.withLock(\.self) == .customMetrics(.fileUnreadable))
         #expect(sut.customMetricsSources.isEmpty)
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_forwards_error_when_json_is_invalid() async {
+    func send_fileImporterResponse_forwards_error_when_json_is_invalid() async {
         let storage = UserDefaultsClient.storage()
         let recorder = errorRecorder()
         let sut = CustomMetricsSettings(
@@ -283,32 +283,32 @@ struct CustomMetricsSettingsTests {
             ),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success([URL(filePath: "/tmp/metrics.json")])))
+        await sut.send(.fileImporterResponse(.success([URL(filePath: "/tmp/metrics.json")])))
         #expect(recorder.lock.withLock(\.self) == .customMetrics(.invalidFormat))
         #expect(sut.customMetricsSources.isEmpty)
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_success_without_url_is_noop() async {
+    func send_fileImporterResponse_success_without_url_is_noop() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage()
         let sut = CustomMetricsSettings(.testDependencies(
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.onCompletionFileImporter(.success([])))
+        await sut.send(.fileImporterResponse(.success([])))
         #expect(sut.customMetricsSources.isEmpty)
         #expect(appState.withLock(\.customMetricsConfigurationChanges.latestValue) == nil)
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_failure_does_not_throw() async {
+    func send_fileImporterResponse_failure_does_not_throw() async {
         struct DummyError: Error {}
         let storage = UserDefaultsClient.storage()
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.onCompletionFileImporter(.failure(DummyError())))
+        await sut.send(.fileImporterResponse(.failure(DummyError())))
         #expect(sut.customMetricsSources.isEmpty)
     }
 
@@ -327,7 +327,7 @@ struct CustomMetricsSettingsTests {
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
         await sut.send(.removingCustomMetricsSourceConfirmed)
         #expect(sut.customMetricsSources.isEmpty)
@@ -349,7 +349,7 @@ struct CustomMetricsSettingsTests {
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         await sut.send(.removingCustomMetricsSourceConfirmed)
         #expect(sut.customMetricsSources.count == 1)
     }
@@ -369,7 +369,7 @@ struct CustomMetricsSettingsTests {
         let sut = CustomMetricsSettings(.testDependencies(
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
         await sut.send(.removingCustomMetricsSourceCancelled)
         #expect(sut.pendingRemovalSourceID == nil)

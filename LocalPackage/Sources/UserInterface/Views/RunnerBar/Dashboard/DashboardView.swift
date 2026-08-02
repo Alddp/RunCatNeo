@@ -50,11 +50,11 @@ struct DashboardView: View {
         .fixedSize()
         .padding(8)
         .task {
-            await store.send(.task(String(describing: Self.self)))
+            await store.send(.viewAppeared(String(describing: Self.self)))
         }
         .onDisappear {
             Task {
-                await store.send(.onDisappear)
+                await store.send(.viewDisappeared)
             }
         }
     }

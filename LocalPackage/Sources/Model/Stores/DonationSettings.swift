@@ -54,7 +54,7 @@ public final class DonationSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
 
         case .restoreSubscriptionButtonTapped:
@@ -64,12 +64,12 @@ public final class DonationSettings: Composable {
                 handle(error)
             }
 
-        case let .onReceiveProductTaskState(taskState):
+        case let .productTaskStateChanged(taskState):
             if case let .failure(error) = taskState {
                 handle(error)
             }
 
-        case let .onPurchaseCompleted(product, result):
+        case let .purchaseResponse(product, result):
             switch result {
             case let .success(.success(verificationResult)):
                 do {
@@ -87,7 +87,7 @@ public final class DonationSettings: Composable {
                 handle(error)
             }
 
-        case let .onReceiveSubscriptionTaskState(taskState):
+        case let .subscriptionTaskStateChanged(taskState):
             isSubscribed = if let states = taskState.value?.map(\.state) {
                 states.contains { [.subscribed, .inGracePeriod].contains($0) }
             } else {
@@ -111,10 +111,10 @@ public final class DonationSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
+        case viewAppeared(String)
         case restoreSubscriptionButtonTapped
-        case onReceiveProductTaskState(Product.CollectionTaskState)
-        case onPurchaseCompleted(Product, Result<Product.PurchaseResult, any Error>)
-        case onReceiveSubscriptionTaskState(EntitlementTaskState<[Product.SubscriptionInfo.Status]>)
+        case productTaskStateChanged(Product.CollectionTaskState)
+        case purchaseResponse(Product, Result<Product.PurchaseResult, any Error>)
+        case subscriptionTaskStateChanged(EntitlementTaskState<[Product.SubscriptionInfo.Status]>)
     }
 }

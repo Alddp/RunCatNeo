@@ -35,7 +35,7 @@ struct CustomRunnerEditorView: View {
                     .textFieldStyle(.roundedBorder)
                     Picker(selection: Binding<RenderingMode>(
                         get: { .init(isTemplate: store.isTemplate) },
-                        asyncSet: { await store.send(.selectRenderingMode($0)) }
+                        asyncSet: { await store.send(.renderingModePickerSelected($0)) }
                     )) {
                         ForEach(RenderingMode.allCases) { mode in
                             Text(mode.label).tag(mode)
@@ -66,7 +66,7 @@ struct CustomRunnerEditorView: View {
                 allowsMultipleSelection: true,
                 onCompletion: { result in
                     Task {
-                        await store.send(.onCompletionFileImporter(result))
+                        await store.send(.fileImporterResponse(result))
                     }
                 }
             )

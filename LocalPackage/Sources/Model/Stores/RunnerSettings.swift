@@ -61,7 +61,7 @@ public final class RunnerSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
 
         case let .slowDownUnderLoadToggleSwitched(isOn):
@@ -75,7 +75,7 @@ public final class RunnerSettings: Composable {
             userDefaultsRepository.isFlippedHorizontally = isOn
             runnerService.resendCurrentRunnerBundle()
 
-        case let .customRunnerSettings(.onError(error)):
+        case let .customRunnerSettings(.errorOccurred(error)):
             self.error = error
             showingAlert = true
 
@@ -85,7 +85,7 @@ public final class RunnerSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
+        case viewAppeared(String)
         case slowDownUnderLoadToggleSwitched(Bool)
         case flipHorizontallyToggleSwitched(Bool)
         case customRunnerSettings(CustomRunnerSettings.Action)

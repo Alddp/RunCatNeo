@@ -80,7 +80,7 @@ public final class Dashboard: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
             displayedDate = dateClient.now()
             if let metrics = appStateClient.withLock(\.metrics.latestValue) {
@@ -114,7 +114,7 @@ public final class Dashboard: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
 
@@ -174,8 +174,8 @@ public final class Dashboard: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
-        case onDisappear
+        case viewAppeared(String)
+        case viewDisappeared
         case runnerKindPickerSelected(Runner?)
         case settingsButtonTapped
         case activityMonitorButtonTapped

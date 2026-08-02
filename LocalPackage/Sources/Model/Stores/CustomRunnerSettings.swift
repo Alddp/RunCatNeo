@@ -80,7 +80,7 @@ public final class CustomRunnerSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case .task:
+        case .viewAppeared:
             customRunnerBundleList = appStateClient.withLock(\.runnerBundleLists.latestValue)?
                 .filter(\.runner.isCustom) ?? []
             task?.cancel()
@@ -92,7 +92,7 @@ public final class CustomRunnerSettings: Composable {
                 }
             }
             
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
 
@@ -107,12 +107,12 @@ public final class CustomRunnerSettings: Composable {
                 customRunnerBundleList.removeAll { $0.runner == runner }
                 try runnerService.delete(customRunner: runner)
             } catch let error as RCNError {
-                await send(.onError(error))
+                await send(.errorOccurred(error))
             } catch {
                 logService.critical(.deletingCustomRunnerFailed(error))
             }
 
-        case let .onMoveCustomRunnerRow(indexSet, offset):
+        case let .customRunnerRowMoved(indexSet, offset):
             customRunnerBundleList.move(fromOffsets: indexSet, toOffset: offset)
             do {
                 try runnerService.move(fromOffsets: indexSet, toOffset: offset)
@@ -126,7 +126,7 @@ public final class CustomRunnerSettings: Composable {
         case .cancelButtonTapped:
             showingCustomRunnerEditorSheet = false
 
-        case .onDissmissSheet:
+        case .sheetDismissed:
             runnerName = ""
             isTemplate = true
             frameImages.removeAll()
@@ -134,16 +134,16 @@ public final class CustomRunnerSettings: Composable {
             previewingFrameImage = nil
             previewSpeed = 1
 
-        case let .selectRenderingMode(renderingMode):
+        case let .renderingModePickerSelected(renderingMode):
             isTemplate = renderingMode.isTemplate
             
-        case let .onTapFrameImageCell(frameImage):
+        case let .frameImageCellTapped(frameImage):
             selectingFrameImage = frameImage
 
-        case .onTapCollectionBackground:
+        case .collectionBackgroundTapped:
             selectingFrameImage = nil
             
-        case let .onDropFiles(urls):
+        case let .filesDropped(urls):
             do {
                 let sortedURLs = urls.sorted {
                     $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
@@ -154,7 +154,7 @@ public final class CustomRunnerSettings: Composable {
                     }
                 }
             } catch let error as RCNError {
-                await send(.onError(error))
+                await send(.errorOccurred(error))
             } catch {
                 logService.error(.importingFrameImagesFailed(error))
             }
@@ -175,7 +175,7 @@ public final class CustomRunnerSettings: Composable {
             }
             advanceFrameImage()
             
-        case let .onCompletionFileImporter(.success(urls)):
+        case let .fileImporterResponse(.success(urls)):
             do {
                 for url in urls {
                     guard urlClient.startAccessingSecurityScopedResource(url) else { return }
@@ -185,12 +185,12 @@ public final class CustomRunnerSettings: Composable {
                     try appendFrameImage(from: url)
                 }
             } catch let error as RCNError {
-                await send(.onError(error))
+                await send(.errorOccurred(error))
             } catch {
                 logService.error(.importingFrameImagesFailed(error))
             }
             
-        case let .onCompletionFileImporter(.failure(error)):
+        case let .fileImporterResponse(.failure(error)):
             logService.error(.importingFrameImagesFailed(error))
             
         case .addButtonTapped:
@@ -215,12 +215,12 @@ public final class CustomRunnerSettings: Composable {
                 }
                 showingCustomRunnerEditorSheet = false
             } catch let error as RCNError {
-                await send(.onError(error))
+                await send(.errorOccurred(error))
             } catch {
                 logService.critical(.unknown(error))
             }
             
-        case .onError:
+        case .errorOccurred:
             return
         }
     }
@@ -248,21 +248,21 @@ public final class CustomRunnerSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task
-        case onDisappear
+        case viewAppeared
+        case viewDisappeared
         case deleteButtonTapped(Runner)
-        case onMoveCustomRunnerRow(IndexSet, Int)
+        case customRunnerRowMoved(IndexSet, Int)
         case addCustomRunnerButtonTapped
         case cancelButtonTapped
-        case onDissmissSheet
-        case selectRenderingMode(RenderingMode)
-        case onTapFrameImageCell(FrameImage)
-        case onTapCollectionBackground
-        case onDropFiles([URL])
+        case sheetDismissed
+        case renderingModePickerSelected(RenderingMode)
+        case frameImageCellTapped(FrameImage)
+        case collectionBackgroundTapped
+        case filesDropped([URL])
         case addFrameButtonTapped
         case deleteFrameButtonTapped
-        case onCompletionFileImporter(Result<[URL], any Error>)
+        case fileImporterResponse(Result<[URL], any Error>)
         case addButtonTapped
-        case onError(RCNError)
+        case errorOccurred(RCNError)
     }
 }

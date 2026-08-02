@@ -46,7 +46,7 @@ struct CustomRunnerSettingsSectionView: View {
                 }
                 .onMove { indexSet, offset in
                     Task {
-                        await store.send(.onMoveCustomRunnerRow(indexSet, offset))
+                        await store.send(.customRunnerRowMoved(indexSet, offset))
                     }
                 }
             }
@@ -65,7 +65,7 @@ struct CustomRunnerSettingsSectionView: View {
                 }
                 .sheet(isPresented: $store.showingCustomRunnerEditorSheet) {
                     Task {
-                        await store.send(.onDissmissSheet)
+                        await store.send(.sheetDismissed)
                     }
                 } content: {
                     CustomRunnerEditorView(store: store)
@@ -81,11 +81,11 @@ struct CustomRunnerSettingsSectionView: View {
                 .fixedSize()
         }
         .task {
-            await store.send(.task)
+            await store.send(.viewAppeared)
         }
         .onDisappear {
             Task {
-                await store.send(.onDisappear)
+                await store.send(.viewDisappeared)
             }
         }
     }

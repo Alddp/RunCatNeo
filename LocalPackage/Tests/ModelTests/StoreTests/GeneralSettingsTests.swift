@@ -7,7 +7,7 @@ import Testing
 
 struct GeneralSettingsTests {
     @MainActor @Test
-    func send_updateIntervalChanged_persists_and_restarts_monitoring() async {
+    func send_updateIntervalPickerSelected_persists_and_restarts_monitoring() async {
         let setCallStack = AllocatedUnfairLock<[String]>(initialState: [])
         let monitoringEvents = AllocatedUnfairLock<[String]>(initialState: [])
         let sut = GeneralSettings(.testDependencies(
@@ -27,7 +27,7 @@ struct GeneralSettingsTests {
                 }
             }
         ))
-        await sut.send(.updateIntervalChanged(.threeSeconds))
+        await sut.send(.updateIntervalPickerSelected(.threeSeconds))
         #expect(sut.updateInterval == .threeSeconds)
         #expect(setCallStack.withLock(\.self) == ["set: UPDATE_INTERVAL = 3"])
         #expect(monitoringEvents.withLock(\.self) == ["stop", "start: 3.0"])

@@ -64,7 +64,7 @@ These are the authoritative line-level style rules for all Swift code in this re
 
 ## Tests
 
-- Name test functions in snake_case as `subject_condition_expectation` (e.g. `decode_throws_when_title_missing`, `send_task_reloads_customMetricsSources_from_user_defaults`).
+- Name test functions in snake_case as `subject_condition_expectation` (e.g. `decode_throws_when_title_missing`, `send_viewAppeared_reloads_customMetricsSources_from_user_defaults`).
 - Compare whole `Equatable` values with a single `#expect` instead of asserting properties one by one; add `Equatable` conformance to entities when tests need it.
 - Pass the expression under test directly to `#expect` instead of binding it to a temporary constant like `actual`; bind a constant (with a meaningful name) only when multiple assertions need the same value.
 - Use `AllocatedUnfairLock` for mutable state captured by mock dependency closures.

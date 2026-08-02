@@ -39,7 +39,7 @@ struct FrameImagesCollectionView: View {
                         )
                         .onTapGesture {
                             Task {
-                                await store.send(.onTapFrameImageCell(frameImage))
+                                await store.send(.frameImageCellTapped(frameImage))
                             }
                         }
                         .sortable(
@@ -54,12 +54,12 @@ struct FrameImagesCollectionView: View {
             .background(Color(.controlBackgroundColor))
             .onTapGesture {
                 Task {
-                    await store.send(.onTapCollectionBackground)
+                    await store.send(.collectionBackgroundTapped)
                 }
             }
             .dropDestination(for: URL.self) { urls, _ in
                 Task {
-                    await store.send(.onDropFiles(urls))
+                    await store.send(.filesDropped(urls))
                 }
                 return true
             }

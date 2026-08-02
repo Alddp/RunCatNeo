@@ -41,7 +41,7 @@ struct CustomMetricsSettingsSectionView: View {
                 }
                 .onMove { indexSet, offset in
                     Task {
-                        await store.send(.onMoveCustomMetricsSourceRow(indexSet, offset))
+                        await store.send(.customMetricsSourceRowMoved(indexSet, offset))
                     }
                 }
             }
@@ -87,7 +87,7 @@ struct CustomMetricsSettingsSectionView: View {
                 allowsMultipleSelection: false,
                 onCompletion: { result in
                     Task {
-                        await store.send(.onCompletionFileImporter(result))
+                        await store.send(.fileImporterResponse(result))
                     }
                 }
             )
@@ -121,11 +121,11 @@ struct CustomMetricsSettingsSectionView: View {
             Text("customMetrics", bundle: .module)
         }
         .task {
-            await store.send(.task)
+            await store.send(.viewAppeared)
         }
         .onDisappear {
             Task {
-                await store.send(.onDisappear)
+                await store.send(.viewDisappeared)
             }
         }
     }

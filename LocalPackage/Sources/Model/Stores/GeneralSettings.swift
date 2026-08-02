@@ -49,10 +49,10 @@ public final class GeneralSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
 
-        case let .updateIntervalChanged(interval):
+        case let .updateIntervalPickerSelected(interval):
             updateInterval = interval
             userDefaultsRepository.updateInterval = interval
             systemMetricsService.stopMonitoring()
@@ -69,8 +69,8 @@ public final class GeneralSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
-        case updateIntervalChanged(UpdateInterval)
+        case viewAppeared(String)
+        case updateIntervalPickerSelected(UpdateInterval)
         case launchAtLoginToggleSwitched(Bool)
     }
 }
