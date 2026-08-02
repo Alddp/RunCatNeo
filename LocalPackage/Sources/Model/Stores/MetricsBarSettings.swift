@@ -53,7 +53,7 @@ public final class MetricsBarSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
             metricsBarConfiguration = userDefaultsRepository.metricsBarConfiguration
             customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
@@ -65,7 +65,7 @@ public final class MetricsBarSettings: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
 
@@ -120,8 +120,8 @@ public final class MetricsBarSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
-        case onDisappear
+        case viewAppeared(String)
+        case viewDisappeared
         case showsSystemMetricsToggleSwitched(SystemInfoType, Bool)
         case showsCustomMetricsToggleSwitched(UUID, Bool)
     }

@@ -57,7 +57,7 @@ public final class MetricsBar: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
             if let metrics = appStateClient.withLock(\.metrics.latestValue) {
                 updateMetrics(from: metrics)
@@ -86,7 +86,7 @@ public final class MetricsBar: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
         }
@@ -102,7 +102,7 @@ public final class MetricsBar: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
-        case onDisappear
+        case viewAppeared(String)
+        case viewDisappeared
     }
 }

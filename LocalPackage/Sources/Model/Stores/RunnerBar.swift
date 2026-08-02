@@ -59,7 +59,7 @@ public final class RunnerBar: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName, eventBridge):
+        case let .viewAppeared(screenName, eventBridge):
             logService.notice(.screenView(name: screenName))
             self.eventBridge = eventBridge
             task?.cancel()
@@ -85,7 +85,7 @@ public final class RunnerBar: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
         }
@@ -134,8 +134,8 @@ public final class RunnerBar: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String, EventBridge)
-        case onDisappear
+        case viewAppeared(String, EventBridge)
+        case viewDisappeared
 
         public struct EventBridge: Sendable {
             public let getBundleImage: @MainActor @Sendable (String) -> NSImage

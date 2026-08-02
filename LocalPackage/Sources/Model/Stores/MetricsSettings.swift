@@ -72,7 +72,7 @@ public final class MetricsSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case let .task(screenName):
+        case let .viewAppeared(screenName):
             logService.notice(.screenView(name: screenName))
             task?.cancel()
             task = Task.immediate { [weak self, appStateClient] in
@@ -82,7 +82,7 @@ public final class MetricsSettings: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
 
@@ -128,7 +128,7 @@ public final class MetricsSettings: Composable {
             systemMetricsService.toggleSystemMetricsActivation(type: type, isOn: isOn)
             systemMetricsService.emitConfigurationChange()
 
-        case let .customMetricsSettings(.onError(error)):
+        case let .customMetricsSettings(.errorOccurred(error)):
             self.error = error
             showingAlert = true
 
@@ -142,8 +142,8 @@ public final class MetricsSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task(String)
-        case onDisappear
+        case viewAppeared(String)
+        case viewDisappeared
         case showMetricsBarToggleSwitched(Bool)
         case changedMyMindButtonTapped
         case showButtonTapped

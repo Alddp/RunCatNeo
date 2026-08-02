@@ -19,7 +19,7 @@ struct MetricsBarSettingsTests {
     }
 
     @MainActor @Test
-    func send_task_loads_customMetricsSources_from_user_defaults() async {
+    func send_viewAppeared_loads_customMetricsSources_from_user_defaults() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let source = makeSource(id: UUID(1))
         let storage = UserDefaultsClient.storage(initialSources: [source])
@@ -27,20 +27,20 @@ struct MetricsBarSettingsTests {
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task("MetricsBarSettingsTests"))
+        await sut.send(.viewAppeared("MetricsBarSettingsTests"))
         #expect(sut.customMetricsSources == [source])
-        await sut.send(.onDisappear)
+        await sut.send(.viewDisappeared)
     }
 
     @MainActor @Test
-    func send_task_refreshes_sources_when_custom_metrics_configuration_change_is_emitted() async {
+    func send_viewAppeared_refreshes_sources_when_custom_metrics_configuration_change_is_emitted() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage()
         let sut = MetricsBarSettings(.testDependencies(
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task("MetricsBarSettingsTests"))
+        await sut.send(.viewAppeared("MetricsBarSettingsTests"))
         #expect(sut.customMetricsSources.isEmpty)
         let source = makeSource(id: UUID(1))
         let encodedConfiguration = try? JSONEncoder().encode(CustomMetricsConfiguration(sources: [source]))
@@ -48,7 +48,7 @@ struct MetricsBarSettingsTests {
         appState.withLock { $0.customMetricsConfigurationChanges.send() }
         await waitUntil { sut.customMetricsSources == [source] }
         #expect(sut.customMetricsSources == [source])
-        await sut.send(.onDisappear)
+        await sut.send(.viewDisappeared)
     }
 
     @MainActor @Test

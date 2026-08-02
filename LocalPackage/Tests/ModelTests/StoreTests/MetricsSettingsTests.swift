@@ -8,14 +8,14 @@ import Testing
 
 struct MetricsSettingsTests {
     @MainActor @Test
-    func send_task_refreshes_configuration_when_change_event_is_emitted() async throws {
+    func send_viewAppeared_refreshes_configuration_when_change_event_is_emitted() async throws {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage()
         let sut = MetricsSettings(.testDependencies(
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task("MetricsSettingsTests"))
+        await sut.send(.viewAppeared("MetricsSettingsTests"))
         #expect(sut.systemMetricsConfiguration == .default)
         let updatedConfiguration = SystemMetricsConfiguration(
             monitorsMemory: false,
@@ -28,19 +28,19 @@ struct MetricsSettingsTests {
         appState.withLock { $0.systemMetricsConfigurationChanges.send() }
         await waitUntil { sut.systemMetricsConfiguration == updatedConfiguration }
         #expect(sut.systemMetricsConfiguration == updatedConfiguration)
-        await sut.send(.onDisappear)
+        await sut.send(.viewDisappeared)
     }
 
     @MainActor @Test
-    func send_onDisappear_stops_observing_configuration_changes() async throws {
+    func send_viewDisappeared_stops_observing_configuration_changes() async throws {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage()
         let sut = MetricsSettings(.testDependencies(
             appStateClient: .testDependency(appState),
             userDefaultsClient: storage.client
         ))
-        await sut.send(.task("MetricsSettingsTests"))
-        await sut.send(.onDisappear)
+        await sut.send(.viewAppeared("MetricsSettingsTests"))
+        await sut.send(.viewDisappeared)
         let updatedConfiguration = SystemMetricsConfiguration(
             monitorsMemory: false,
             monitorsStorage: false,
@@ -179,9 +179,9 @@ struct MetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_customMetricsSettings_onError_shows_alert() async {
+    func send_customMetricsSettings_errorOccurred_shows_alert() async {
         let sut = MetricsSettings(.testDependencies())
-        await sut.send(.customMetricsSettings(.onError(.customMetrics(.fileUnreadable))))
+        await sut.send(.customMetricsSettings(.errorOccurred(.customMetrics(.fileUnreadable))))
         #expect(sut.error == .customMetrics(.fileUnreadable))
         #expect(sut.showingAlert == true)
     }

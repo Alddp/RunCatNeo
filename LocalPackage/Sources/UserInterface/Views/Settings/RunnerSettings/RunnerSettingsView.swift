@@ -52,7 +52,7 @@ struct RunnerSettingsView: View {
             message: { _ in }
         )
         .task {
-            await store.send(.task(String(describing: Self.self)))
+            await store.send(.viewAppeared(String(describing: Self.self)))
         }
     }
 }

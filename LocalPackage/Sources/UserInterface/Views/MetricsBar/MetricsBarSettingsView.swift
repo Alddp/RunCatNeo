@@ -80,11 +80,11 @@ struct MetricsBarSettingsView: View {
         .frame(width: 360)
         .fixedSize()
         .task {
-            await store.send(.task(String(describing: Self.self)))
+            await store.send(.viewAppeared(String(describing: Self.self)))
         }
         .onDisappear {
             Task {
-                await store.send(.onDisappear)
+                await store.send(.viewDisappeared)
             }
         }
     }

@@ -66,7 +66,7 @@ public final class CustomMetricsSettings: Composable {
 
     public func reduce(_ action: Action) async {
         switch action {
-        case .task:
+        case .viewAppeared:
             customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
             refreshFailedCustomMetricsSourceIDs()
             task?.cancel()
@@ -77,7 +77,7 @@ public final class CustomMetricsSettings: Composable {
                 }
             }
 
-        case .onDisappear:
+        case .viewDisappeared:
             task?.cancel()
             task = nil
 
@@ -92,10 +92,10 @@ public final class CustomMetricsSettings: Composable {
                     for: source
                 )
             } catch {
-                await send(.onError(.customMetrics(.fileUnreadable)))
+                await send(.errorOccurred(.customMetrics(.fileUnreadable)))
             }
 
-        case let .onMoveCustomMetricsSourceRow(indexSet, offset):
+        case let .customMetricsSourceRowMoved(indexSet, offset):
             customMetricsService.moveSources(fromOffsets: indexSet, toOffset: offset)
             customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
             customMetricsService.emitConfigurationChange()
@@ -106,19 +106,19 @@ public final class CustomMetricsSettings: Composable {
         case .helpButtonTapped:
             showingHelpPopover = true
 
-        case let .onCompletionFileImporter(.success(urls)):
+        case let .fileImporterResponse(.success(urls)):
             guard let url = urls.first else { return }
             do {
                 try customMetricsService.addSource(of: url)
                 customMetricsSources = userDefaultsRepository.customMetricsConfiguration.sources
                 customMetricsService.emitConfigurationChange()
             } catch let error as RCNError {
-                await send(.onError(error))
+                await send(.errorOccurred(error))
             } catch {
                 logService.critical(.unknown(error))
             }
 
-        case let .onCompletionFileImporter(.failure(error)):
+        case let .fileImporterResponse(.failure(error)):
             logService.error(.importingCustomMetricsSourceFailed(error))
 
         case .removingCustomMetricsSourceConfirmed:
@@ -131,7 +131,7 @@ public final class CustomMetricsSettings: Composable {
         case .removingCustomMetricsSourceCancelled:
             pendingRemovalSourceID = nil
 
-        case .onError:
+        case .errorOccurred:
             return
         }
     }
@@ -148,16 +148,16 @@ public final class CustomMetricsSettings: Composable {
     }
 
     public enum Action: Sendable {
-        case task
-        case onDisappear
+        case viewAppeared
+        case viewDisappeared
         case removeCustomMetricsSourceButtonTapped(UUID)
         case customMetricsSourceLinkTapped(CustomMetricsSource)
-        case onMoveCustomMetricsSourceRow(IndexSet, Int)
+        case customMetricsSourceRowMoved(IndexSet, Int)
         case addCustomMetricsSourceButtonTapped
         case helpButtonTapped
-        case onCompletionFileImporter(Result<[URL], any Error>)
+        case fileImporterResponse(Result<[URL], any Error>)
         case removingCustomMetricsSourceConfirmed
         case removingCustomMetricsSourceCancelled
-        case onError(RCNError)
+        case errorOccurred(RCNError)
     }
 }

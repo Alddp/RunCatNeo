@@ -40,7 +40,7 @@ struct GeneralSettingsView: View {
             Section {
                 Picker(selection: Binding<UpdateInterval>(
                     get: { store.updateInterval },
-                    asyncSet: { await store.send(.updateIntervalChanged($0)) }
+                    asyncSet: { await store.send(.updateIntervalPickerSelected($0)) }
                 )) {
                     ForEach(UpdateInterval.allCases) { interval in
                         Text("\(interval.seconds)seconds", bundle: .module)
@@ -55,7 +55,7 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .task {
-            await store.send(.task(String(describing: Self.self)))
+            await store.send(.viewAppeared(String(describing: Self.self)))
         }
     }
 }

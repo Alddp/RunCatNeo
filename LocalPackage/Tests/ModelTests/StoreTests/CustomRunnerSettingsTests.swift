@@ -16,7 +16,7 @@ struct CustomRunnerSettingsTests {
     ) {
         let lock = AllocatedUnfairLock<RCNError?>(initialState: nil)
         let action: (CustomRunnerSettings.Action) async -> Void = { action in
-            if case let .onError(error) = action {
+            if case let .errorOccurred(error) = action {
                 lock.withLock { $0 = error }
             }
         }
@@ -24,7 +24,7 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_task_filters_custom_runners_and_starts_frame_preview() async {
+    func send_viewAppeared_filters_custom_runners_and_starts_frame_preview() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let customBundle = RunnerBundle(runner: customRunner, frame: .custom(Data()))
         appState.withLock {
@@ -38,11 +38,11 @@ struct CustomRunnerSettingsTests {
             .testDependencies(appStateClient: .testDependency(appState)),
             frameImages: frameImages
         )
-        await sut.send(.task)
+        await sut.send(.viewAppeared)
         let previewedSecondFrameImage = await waitUntil { sut.previewingFrameImage == frameImages[1] }
         #expect(sut.customRunnerBundleList == [customBundle])
         #expect(previewedSecondFrameImage)
-        await sut.send(.onDisappear)
+        await sut.send(.viewDisappeared)
     }
 
     @MainActor @Test
@@ -79,7 +79,7 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onMoveCustomRunnerRow_reorders_list_and_persists_new_order() async {
+    func send_customRunnerRowMoved_reorders_list_and_persists_new_order() async {
         let json = """
             [
               {
@@ -121,7 +121,7 @@ struct CustomRunnerSettingsTests {
             ),
             customRunnerBundleList: [firstBundle, secondBundle]
         )
-        await sut.send(.onMoveCustomRunnerRow(IndexSet(integer: 1), 0))
+        await sut.send(.customRunnerRowMoved(IndexSet(integer: 1), 0))
         #expect(sut.customRunnerBundleList == [secondBundle, firstBundle])
         let expectedJSON = #"[{"frameOrder":[0],"id":"second-runner","isTemplate":false,"name":"Second Runner"},"#
             + #"{"frameOrder":[0],"id":"first-runner","isTemplate":false,"name":"First Runner"}]"#
@@ -146,7 +146,7 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onDissmissSheet_resets_editor_inputs() async {
+    func send_sheetDismissed_resets_editor_inputs() async {
         let frameImage = FrameImage.dummy()
         let sut = CustomRunnerSettings(
             .testDependencies(),
@@ -157,7 +157,7 @@ struct CustomRunnerSettingsTests {
             previewingFrameImage: frameImage,
             previewSpeed: 2
         )
-        await sut.send(.onDissmissSheet)
+        await sut.send(.sheetDismissed)
         #expect(sut.runnerName.isEmpty)
         #expect(sut.isTemplate == true)
         #expect(sut.frameImages.isEmpty)
@@ -167,29 +167,29 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_selectRenderingMode_updates_isTemplate() async {
+    func send_renderingModePickerSelected_updates_isTemplate() async {
         let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.selectRenderingMode(.color))
+        await sut.send(.renderingModePickerSelected(.color))
         #expect(sut.isTemplate == false)
-        await sut.send(.selectRenderingMode(.monochrome))
+        await sut.send(.renderingModePickerSelected(.monochrome))
         #expect(sut.isTemplate == true)
     }
 
     @MainActor @Test
-    func send_onTapFrameImageCell_selects_frame_and_background_clears_it() async {
+    func send_frameImageCellTapped_selects_frame_and_background_clears_it() async {
         let frameImage = FrameImage.dummy()
         let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.onTapFrameImageCell(frameImage))
+        await sut.send(.frameImageCellTapped(frameImage))
         #expect(sut.selectingFrameImage == frameImage)
-        await sut.send(.onTapCollectionBackground)
+        await sut.send(.collectionBackgroundTapped)
         #expect(sut.selectingFrameImage == nil)
     }
 
     @MainActor @Test
-    func send_onDropFiles_appends_valid_png_and_ignores_other_extensions() async {
+    func send_filesDropped_appends_valid_png_and_ignores_other_extensions() async {
         let recorder = errorRecorder()
         let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onDropFiles([
+        await sut.send(.filesDropped([
             URL.fixture(name: "solid_red_30x36"),
             URL(filePath: "/tmp/ignored.json"),
         ]))
@@ -198,10 +198,10 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onDropFiles_forwards_error_when_image_size_is_invalid() async {
+    func send_filesDropped_forwards_error_when_image_size_is_invalid() async {
         let recorder = errorRecorder()
         let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onDropFiles([URL.fixture(name: "solid_red_10x18")]))
+        await sut.send(.filesDropped([URL.fixture(name: "solid_red_10x18")]))
         #expect(recorder.lock.withLock(\.self) == .customRunner(.invalidFrameImage))
         #expect(sut.frameImages.isEmpty)
     }
@@ -228,7 +228,7 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_appends_accessible_frame_image() async {
+    func send_fileImporterResponse_appends_accessible_frame_image() async {
         let recorder = errorRecorder()
         let urlClient = testDependency(of: URLClient.self) {
             $0.startAccessingSecurityScopedResource = { _ in true }
@@ -238,13 +238,13 @@ struct CustomRunnerSettingsTests {
             .testDependencies(urlClient: urlClient),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
+        await sut.send(.fileImporterResponse(.success([URL.fixture(name: "solid_red_30x36")])))
         #expect(sut.frameImages.count == 1)
         #expect(recorder.lock.withLock(\.self) == nil)
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_skips_inaccessible_frame_image() async {
+    func send_fileImporterResponse_skips_inaccessible_frame_image() async {
         let recorder = errorRecorder()
         let urlClient = testDependency(of: URLClient.self) {
             $0.startAccessingSecurityScopedResource = { _ in false }
@@ -253,16 +253,16 @@ struct CustomRunnerSettingsTests {
             .testDependencies(urlClient: urlClient),
             action: recorder.action
         )
-        await sut.send(.onCompletionFileImporter(.success([URL.fixture(name: "solid_red_30x36")])))
+        await sut.send(.fileImporterResponse(.success([URL.fixture(name: "solid_red_30x36")])))
         #expect(sut.frameImages.isEmpty)
         #expect(recorder.lock.withLock(\.self) == nil)
     }
 
     @MainActor @Test
-    func send_onCompletionFileImporter_failure_is_noop() async {
+    func send_fileImporterResponse_failure_is_noop() async {
         let recorder = errorRecorder()
         let sut = CustomRunnerSettings(.testDependencies(), action: recorder.action)
-        await sut.send(.onCompletionFileImporter(.failure(URLError(.cancelled))))
+        await sut.send(.fileImporterResponse(.failure(URLError(.cancelled))))
         #expect(sut.frameImages.isEmpty)
         #expect(recorder.lock.withLock(\.self) == nil)
     }

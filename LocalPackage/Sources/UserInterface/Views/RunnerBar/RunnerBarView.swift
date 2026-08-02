@@ -70,7 +70,7 @@ struct RunnerBarView: View {
             let runnerLayer = RunnerLayer(gap: gap)
             statusBarButton.layer?.addSublayer(runnerLayer)
             StatusBarAppearanceBridge.shared.send(window.effectiveAppearance)
-            await store.send(.task(
+            await store.send(.viewAppeared(
                 String(describing: Self.self),
                 .init(
                     getBundleImage: { NSImage(resource: .init(name: $0, bundle: .module)) },
@@ -85,7 +85,7 @@ struct RunnerBarView: View {
         // but I am including it here for the sake of formality.
         .onDisappear {
             Task {
-                await store.send(.onDisappear)
+                await store.send(.viewDisappeared)
             }
         }
     }
