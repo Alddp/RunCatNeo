@@ -24,6 +24,7 @@ public enum ErrorEvent {
     case donationFailed(any Error)
     case importingCustomMetricsSourceFailed(any Error)
     case importingFrameImagesFailed(any Error)
+    case switchingRunnerFailed(any Error)
 
     public var message: Logger.Message {
         switch self {
@@ -33,6 +34,8 @@ public enum ErrorEvent {
             "Failed importing custom metrics source."
         case .importingFrameImagesFailed:
             "Failed importing frame images."
+        case .switchingRunnerFailed:
+            "Failed switching runner."
         }
     }
 
@@ -40,7 +43,8 @@ public enum ErrorEvent {
         switch self {
         case let .donationFailed(error),
             let .importingCustomMetricsSourceFailed(error),
-            let .importingFrameImagesFailed(error):
+            let .importingFrameImagesFailed(error),
+            let .switchingRunnerFailed(error):
             ["cause": "\(error.localizedDescription)"]
         }
     }

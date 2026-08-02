@@ -46,6 +46,27 @@ struct DashboardTests {
     }
 
     @MainActor @Test
+    func send_task_loads_current_runner_and_runner_bundle_list_then_observes_streams() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        appState.withLock {
+            $0.runnerBundles.send(RunnerBundle(runner: .default, frame: .preset("cat-frame-0")))
+            $0.runnerBundleLists.send([RunnerBundle(runner: .default, frame: .preset("cat-frame-0"))])
+        }
+        let sut = Dashboard(.testDependencies(appStateClient: .testDependency(appState)))
+        await sut.send(.task("DashboardTests"))
+        #expect(sut.currentRunner == Runner.default)
+        #expect(sut.runnerBundleList.map(\.runner) == [Runner.default])
+        appState.withLock {
+            $0.runnerBundles.send(RunnerBundle(runner: Runner(kind: .dog), frame: .preset("dog-frame-0")))
+            $0.runnerBundleLists.send([RunnerBundle(runner: Runner(kind: .dog), frame: .preset("dog-frame-0"))])
+        }
+        await waitUntil { sut.currentRunner == Runner(kind: .dog) }
+        #expect(sut.currentRunner == Runner(kind: .dog))
+        #expect(sut.runnerBundleList.map(\.runner) == [Runner(kind: .dog)])
+        await sut.send(.onDisappear)
+    }
+
+    @MainActor @Test
     func send_onDisappear_stops_observing_metrics() async {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let sut = Dashboard(.testDependencies(appStateClient: .testDependency(appState)))
@@ -54,6 +75,46 @@ struct DashboardTests {
         appState.withLock { $0.metrics.send(.dummy(customMetricsTitle: "Ignored")) }
         try? await Task.sleep(for: .milliseconds(50))
         #expect(sut.customMetricsBundles.isEmpty)
+    }
+
+    @MainActor @Test
+    func send_onDisappear_stops_observing_runner_streams() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let sut = Dashboard(.testDependencies(appStateClient: .testDependency(appState)))
+        await sut.send(.task("DashboardTests"))
+        await sut.send(.onDisappear)
+        appState.withLock {
+            $0.runnerBundles.send(RunnerBundle(runner: .default, frame: .preset("cat-frame-0")))
+        }
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(sut.currentRunner == nil)
+    }
+
+    @MainActor @Test
+    func send_runnerKindPickerSelected_updates_current_runner() async {
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let sut = Dashboard(.testDependencies(appStateClient: .testDependency(appState)))
+        await sut.send(.runnerKindPickerSelected(Runner(kind: .dog)))
+        #expect(sut.currentRunner == Runner(kind: .dog))
+        #expect(appState.withLock(\.runnerBundles.latestValue)?.runner == Runner(kind: .dog))
+    }
+
+    @MainActor @Test
+    func send_runnerKindPickerSelected_keeps_current_runner_when_custom_runner_frames_are_missing() async {
+        let runner = Runner(id: "custom-runner", name: "Custom Runner", isTemplate: false, frameOrder: .custom([0]))
+        let appState = AllocatedUnfairLock<AppState>(initialState: .init())
+        let sut = Dashboard(
+            .testDependencies(
+                appStateClient: .testDependency(appState),
+                fileManagerClient: testDependency(of: FileManagerClient.self) {
+                    $0.fileExists = { $0.hasSuffix("RunCatNeo/") }
+                }
+            ),
+            currentRunner: .default
+        )
+        await sut.send(.runnerKindPickerSelected(runner))
+        #expect(sut.currentRunner == Runner.default)
+        #expect(appState.withLock(\.runnerBundles.latestValue) == nil)
     }
 
     @MainActor @Test
