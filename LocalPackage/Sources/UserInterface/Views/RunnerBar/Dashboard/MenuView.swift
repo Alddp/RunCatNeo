@@ -57,7 +57,11 @@ struct MenuView: View {
                     .tag(runnerBundle.runner)
                 }
             } label: {
-                Text("runnerKind", bundle: .module)
+                Label {
+                    Text("runner", bundle: .module)
+                } icon: {
+                    Image(systemName: "pawprint.fill")
+                }
             }
             Divider()
             SettingsLink {
