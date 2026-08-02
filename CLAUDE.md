@@ -10,7 +10,9 @@ RunCat Neo is a macOS menu-bar app that animates a running cat in the status bar
 
 The app shell lives in `RunCatNeo.xcodeproj` and embeds the local Swift Package `LocalPackage/`, which contains essentially all source code. The `xcode` MCP tools (`mcp__xcode__BuildProject`, `mcp__xcode__RunAllTests`, etc.) are the preferred way to build and run tests — fall back to `xcodebuild` only when MCP is unavailable.
 
-Tests live only in the SPM package (`DataSourceTests`, `ModelTests`) and use Swift Testing (`@Test`, `#expect`). Run via the `LocalPackage-Package` scheme on `platform=macOS,arch=arm64`. There are no UI tests and no linter configured.
+Tests live only in the SPM package (`DataSourceTests`, `ModelTests`) and use Swift Testing (`@Test`, `#expect`). There are no UI tests and no linter configured.
+
+On the `xcodebuild` fallback only: run it from `LocalPackage/` with the `LocalPackage-Package` scheme on `platform=macOS,arch=arm64`. SwiftPM generates that scheme for the package, so it is not listed at the repository root — from there the equivalent is the `RunCatNeo` scheme and its `UnitTest.xctestplan`, which cover the same two targets. CI takes the former path (`working-directory: LocalPackage`).
 
 CI (`.github/workflows/test.yml`) runs on tag pushes only — local test runs are the primary verification loop during development.
 
