@@ -18,7 +18,6 @@
  limitations under the License.
  */
 
-import DataSource
 import Model
 import SwiftUI
 
@@ -28,21 +27,6 @@ struct RunnerSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker(selection: Binding<Runner?>(
-                    get: { store.currentRunner },
-                    asyncSet: { await store.send(.selectRunner($0)) }
-                )) {
-                    ForEach(store.runnerBundleList, id: \.runner) { runnerBundle in
-                        Label {
-                            Text(runnerBundle.runner.formatted)
-                        } icon: {
-                            runnerBundle.thumbnail
-                        }
-                        .tag(runnerBundle.runner)
-                    }
-                } label: {
-                    Text("runnerKind", bundle: .module)
-                }
                 Toggle(isOn: Binding<Bool>(
                     get: { store.speedDecreasesUnderLoad },
                     asyncSet: { await store.send(.slowDownUnderLoadToggleSwitched($0)) }
@@ -69,11 +53,6 @@ struct RunnerSettingsView: View {
         )
         .task {
             await store.send(.task(String(describing: Self.self)))
-        }
-        .onDisappear {
-            Task {
-                await store.send(.onDisappear)
-            }
         }
     }
 }

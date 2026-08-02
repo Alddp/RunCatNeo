@@ -31,6 +31,7 @@ public final class Dashboard: Composable {
     private let nsWorkspaceClient: NSWorkspaceClient
     private let userDefaultsRepository: UserDefaultsRepository
     private let logService: LogService
+    private let runnerService: RunnerService
 
     @ObservationIgnored private var task: Task<Void, Never>?
 
@@ -40,6 +41,8 @@ public final class Dashboard: Composable {
     public var memoryRingBuffer: RingBuffer
     public var customMetricsBundles: [CustomMetricsBundle]
     public var displayedDate: Date
+    public var currentRunner: Runner?
+    public var runnerBundleList: [RunnerBundle]
     public let isPreview: Bool
     public let action: (Action) async -> Void
 
@@ -51,6 +54,8 @@ public final class Dashboard: Composable {
         memoryRingBuffer: RingBuffer = .init(),
         customMetricsBundles: [CustomMetricsBundle] = [],
         displayedDate: Date? = nil,
+        currentRunner: Runner? = nil,
+        runnerBundleList: [RunnerBundle] = [],
         isPreview: Bool? = nil,
         action: @escaping (Action) async -> Void =  { _ in }
     ) {
@@ -60,12 +65,15 @@ public final class Dashboard: Composable {
         self.nsWorkspaceClient = appDependencies.nsWorkspaceClient
         self.userDefaultsRepository = .init(appDependencies.userDefaultsClient)
         self.logService = .init(appDependencies)
+        self.runnerService = .init(appDependencies)
         self.appName = appName ?? appStateClient.withLock(\.name)
         self.systemInfoBundle = systemInfoBundle
         self.cpuRingBuffer = cpuRingBuffer
         self.memoryRingBuffer = memoryRingBuffer
         self.customMetricsBundles = customMetricsBundles
         self.displayedDate = displayedDate ?? dateClient.now()
+        self.currentRunner = currentRunner
+        self.runnerBundleList = runnerBundleList
         self.isPreview = isPreview ?? ProcessInfo.isPreview
         self.action = action
     }
@@ -78,17 +86,46 @@ public final class Dashboard: Composable {
             if let metrics = appStateClient.withLock(\.metrics.latestValue) {
                 updateMetrics(metrics)
             }
+            if let runnerBundle = appStateClient.withLock(\.runnerBundles.latestValue) {
+                currentRunner = runnerBundle.runner
+            }
+            runnerBundleList = appStateClient.withLock(\.runnerBundleLists.latestValue) ?? []
             task?.cancel()
             task = Task.immediate { [weak self, appStateClient] in
-                let stream = appStateClient.withLock(\.metrics.stream)
-                for await value in stream {
-                    self?.updateMetrics(value)
+                await withTaskGroup { group in
+                    group.addImmediateTask {
+                        let stream = appStateClient.withLock(\.metrics.stream)
+                        for await value in stream {
+                            self?.updateMetrics(value)
+                        }
+                    }
+                    group.addImmediateTask {
+                        let stream = appStateClient.withLock(\.runnerBundles.stream)
+                        for await value in stream {
+                            self?.updateCurrentRunner(from: value)
+                        }
+                    }
+                    group.addImmediateTask {
+                        let stream = appStateClient.withLock(\.runnerBundleLists.stream)
+                        for await value in stream {
+                            self?.update(runnerBundleList: value)
+                        }
+                    }
                 }
             }
 
         case .onDisappear:
             task?.cancel()
             task = nil
+
+        case let .runnerKindPickerSelected(runner):
+            guard let runner else { return }
+            do {
+                try runnerService.update(runner: runner)
+                currentRunner = runner
+            } catch {
+                logService.error(.switchingRunnerFailed(error))
+            }
 
         case .settingsButtonTapped:
             nsAppClient.activate(true)
@@ -128,9 +165,18 @@ public final class Dashboard: Composable {
         customMetricsBundles = metrics.customMetricsBundles
     }
 
+    private func updateCurrentRunner(from runnerBundle: RunnerBundle) {
+        currentRunner = runnerBundle.runner
+    }
+
+    private func update(runnerBundleList: [RunnerBundle]) {
+        self.runnerBundleList = runnerBundleList
+    }
+
     public enum Action: Sendable {
         case task(String)
         case onDisappear
+        case runnerKindPickerSelected(Runner?)
         case settingsButtonTapped
         case activityMonitorButtonTapped
         case aboutButtonTapped(AttributedString)

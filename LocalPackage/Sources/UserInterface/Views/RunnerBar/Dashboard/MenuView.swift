@@ -24,9 +24,7 @@ import SwiftUI
 
 struct MenuView: View {
     @Environment(\.openWindow) private var openWindow
-    var appName: String
-    var isPreview: Bool
-    var buttonTapped: (Dashboard.Action) async -> Void
+    var store: Dashboard
 
     private var aboutBody: AttributedString {
         var attributedString = AttributedString()
@@ -46,6 +44,26 @@ struct MenuView: View {
 
     var body: some View {
         Menu {
+            Picker(selection: Binding<Runner?>(
+                get: { store.currentRunner },
+                asyncSet: { await store.send(.runnerKindPickerSelected($0)) }
+            )) {
+                ForEach(store.runnerBundleList, id: \.runner) { runnerBundle in
+                    Label {
+                        Text(runnerBundle.runner.formatted)
+                    } icon: {
+                        runnerBundle.thumbnail
+                    }
+                    .tag(runnerBundle.runner)
+                }
+            } label: {
+                Label {
+                    Text("runner", bundle: .module)
+                } icon: {
+                    Image(systemName: "pawprint.fill")
+                }
+            }
+            Divider()
             SettingsLink {
                 Label {
                     Text("settings", bundle: .module)
@@ -54,11 +72,11 @@ struct MenuView: View {
                 }
             }
             .buttonStyle(.preAction {
-                await buttonTapped(.settingsButtonTapped)
+                await store.send(.settingsButtonTapped)
             })
             Button {
                 Task {
-                    await buttonTapped(.activityMonitorButtonTapped)
+                    await store.send(.activityMonitorButtonTapped)
                 }
             } label: {
                 Label {
@@ -70,18 +88,18 @@ struct MenuView: View {
             Divider()
             Button {
                 Task {
-                    await buttonTapped(.aboutButtonTapped(aboutBody))
+                    await store.send(.aboutButtonTapped(aboutBody))
                 }
             } label: {
                 Label {
-                    Text("about\(appName)", bundle: .module)
+                    Text("about\(store.appName)", bundle: .module)
                 } icon: {
                     Image(systemName: "info.circle")
                 }
             }
             Button {
                 Task {
-                    await buttonTapped(.openSourceLicenseButtonTapped(.init(action: {
+                    await store.send(.openSourceLicenseButtonTapped(.init(action: {
                         openWindow(id: $0, value: $1)
                     })))
                 }
@@ -94,7 +112,7 @@ struct MenuView: View {
             }
             Button {
                 Task {
-                    await buttonTapped(.reportIssueButtonTapped)
+                    await store.send(.reportIssueButtonTapped)
                 }
             } label: {
                 Label {
@@ -105,21 +123,21 @@ struct MenuView: View {
             }
             Button {
                 Task {
-                    await buttonTapped(.quitButtonTapped)
+                    await store.send(.quitButtonTapped)
                 }
             } label: {
                 Label {
-                    Text("quit\(appName)", bundle: .module)
+                    Text("quit\(store.appName)", bundle: .module)
                 } icon: {
                     Image(systemName: "xmark.rectangle")
                 }
             }
             .accessibilityIdentifier("terminate_app")
-            if !isPreview, isDebugBuild {
+            if !store.isPreview, isDebugBuild {
                 Divider()
                 Button {
                     Task {
-                        await buttonTapped(.debugSleepButtonTapped)
+                        await store.send(.debugSleepButtonTapped)
                     }
                 } label: {
                     Label {
@@ -130,7 +148,7 @@ struct MenuView: View {
                 }
                 Button {
                     Task {
-                        await buttonTapped(.debugWakeUpButtonTapped)
+                        await store.send(.debugWakeUpButtonTapped)
                     }
                 } label: {
                     Label {
