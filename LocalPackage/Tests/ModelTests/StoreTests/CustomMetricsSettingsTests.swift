@@ -213,10 +213,10 @@ struct CustomMetricsSettingsTests {
     }
 
     @MainActor @Test
-    func send_helpButtonTapped_shows_help_popover() async {
+    func send_infoButtonTapped_shows_info_popover() async {
         let sut = CustomMetricsSettings(.testDependencies())
-        await sut.send(.helpButtonTapped)
-        #expect(sut.showingHelpPopover == true)
+        await sut.send(.infoButtonTapped)
+        #expect(sut.showingInfoPopover == true)
     }
 
     @MainActor @Test

@@ -42,6 +42,7 @@ public final class CustomRunnerSettings: Composable {
     public var previewingFrameImage: FrameImage?
     public var previewSpeed: Double
     public var showingFileImporter: Bool
+    public var showingInfoPopover: Bool
     public let action: (Action) async -> Void
 
     public var canAdd: Bool {
@@ -52,6 +53,7 @@ public final class CustomRunnerSettings: Composable {
         _ appDependencies: AppDependencies,
         customRunnerBundleList: [RunnerBundle] = [],
         showingCustomRunnerEditorSheet: Bool = false,
+        showingInfoPopover: Bool = false,
         runnerName: String = "",
         isTemplate: Bool = true,
         frameImages: [FrameImage] = [],
@@ -68,6 +70,7 @@ public final class CustomRunnerSettings: Composable {
         self.runnerService = .init(appDependencies)
         self.customRunnerBundleList = customRunnerBundleList
         self.showingCustomRunnerEditorSheet = showingCustomRunnerEditorSheet
+        self.showingInfoPopover = showingInfoPopover
         self.runnerName = runnerName
         self.isTemplate = isTemplate
         self.frameImages = frameImages
@@ -219,7 +222,10 @@ public final class CustomRunnerSettings: Composable {
             } catch {
                 logService.critical(.unknown(error))
             }
-            
+
+        case .infoButtonTapped:
+            showingInfoPopover = true
+
         case .errorOccurred:
             return
         }
@@ -263,6 +269,7 @@ public final class CustomRunnerSettings: Composable {
         case deleteFrameButtonTapped
         case fileImporterResponse(Result<[URL], any Error>)
         case addButtonTapped
+        case infoButtonTapped
         case errorOccurred(RCNError)
     }
 }

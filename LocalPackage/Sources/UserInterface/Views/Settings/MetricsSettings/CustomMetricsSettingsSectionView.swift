@@ -45,54 +45,6 @@ struct CustomMetricsSettingsSectionView: View {
                     }
                 }
             }
-            HStack {
-                Spacer()
-                Button {
-                    Task {
-                        await store.send(.addCustomMetricsSourceButtonTapped)
-                    }
-                } label: {
-                    Label {
-                        Text("addCustomMetricsSource", bundle: .module)
-                    } icon: {
-                        Image(systemName: "plus")
-                    }
-                }
-                Button {
-                    Task {
-                        await store.send(.helpButtonTapped)
-                    }
-                } label: {
-                    Image(systemName: "info.circle")
-                }
-                .buttonStyle(.borderless)
-                .popover(isPresented: $store.showingHelpPopover, arrowEdge: .bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("customMetricsDescription", bundle: .module)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Link(destination: URL.customMetricsSchema) {
-                            Text("viewJsonSchemaAndSamples", bundle: .module)
-                                .font(.caption)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: 360, alignment: .leading)
-                }
-            }
-            .fileImporter(
-                isPresented: $store.showingFileImporter,
-                allowedContentTypes: [.json],
-                allowsMultipleSelection: false,
-                onCompletion: { result in
-                    Task {
-                        await store.send(.fileImporterResponse(result))
-                    }
-                }
-            )
-            .fileDialogMessage(Text("chooseJsonFile", bundle: .module))
-            .fileDialogConfirmationLabel(Text("add", bundle: .module))
             .confirmationDialog(
                 Text("removeCustomMetrics", bundle: .module),
                 isPresented: $store.showingConfirmationDialog,
@@ -117,6 +69,59 @@ struct CustomMetricsSettingsSectionView: View {
                     Text("customMetricsConfirmationMessage", bundle: .module)
                 }
             )
+            HStack {
+                Spacer()
+                Button {
+                    Task {
+                        await store.send(.addCustomMetricsSourceButtonTapped)
+                    }
+                } label: {
+                    Label {
+                        Text("addCustomMetricsSource", bundle: .module)
+                    } icon: {
+                        Image(systemName: "plus")
+                    }
+                }
+                .fileImporter(
+                    isPresented: $store.showingFileImporter,
+                    allowedContentTypes: [.json],
+                    allowsMultipleSelection: false,
+                    onCompletion: { result in
+                        Task {
+                            await store.send(.fileImporterResponse(result))
+                        }
+                    }
+                )
+                .fileDialogMessage(Text("chooseJsonFile", bundle: .module))
+                .fileDialogConfirmationLabel(Text("add", bundle: .module))
+                Button {
+                    Task {
+                        await store.send(.infoButtonTapped)
+                    }
+                } label: {
+                    Label {
+                        Text("information", bundle: .module)
+                    } icon: {
+                        Image(systemName: "info.circle")
+                    }
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .popover(isPresented: $store.showingInfoPopover, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("customMetricsDescription", bundle: .module)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Link(destination: URL.customMetricsSchema) {
+                            Text("viewJsonSchemaAndSamples", bundle: .module)
+                                .font(.caption)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: 360, alignment: .leading)
+                }
+            }
         } header: {
             Text("customMetrics", bundle: .module)
         }
