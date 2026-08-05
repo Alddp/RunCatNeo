@@ -67,6 +67,18 @@ These are the authoritative line-level style rules for all Swift code in this re
 - Name test functions in snake_case as `subject_condition_expectation` (e.g. `decode_throws_when_title_missing`, `send_viewAppeared_reloads_customMetricsSources_from_user_defaults`).
 - Compare whole `Equatable` values with a single `#expect` instead of asserting properties one by one; add `Equatable` conformance to entities when tests need it.
 - Pass the expression under test directly to `#expect` instead of binding it to a temporary constant like `actual`; bind a constant (with a meaningful name) only when multiple assertions need the same value.
+- Write boolean assertions as `#expect(value)` and `#expect(!value)` — never `#expect(value == true)` or `#expect(value == false)`.
+- When the asserted value is `Bool?`, unwrap the optional with `try #require` into a named constant first and assert on that, adding `throws` to the test function as needed.
+  This is the one case where binding a constant for a single assertion is expected.
+
+  ```swift
+  let removedContainerURL = try #require(removedURL.withLock { $0 })
+  #expect(removedContainerURL.hasPathSuffix("RunCatNeo/alpha"))
+  ```
+
+- Read an `AllocatedUnfairLock` inside `#require` with the closure form (`withLock { $0 }`), not the key-path form (`withLock(\.self)`), because the macro expansion loses the key path's root type and fails to compile.
+  The key-path form remains fine inside `#expect`.
+- `waitUntil { … }` takes a plain `() -> Bool`, so `== true` and `== false` stay there as the way to flatten an optional condition.
 - Use `AllocatedUnfairLock` for mutable state captured by mock dependency closures.
 
 ## License Headers
