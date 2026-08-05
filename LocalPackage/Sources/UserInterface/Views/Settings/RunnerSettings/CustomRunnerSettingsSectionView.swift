@@ -63,18 +63,18 @@ struct CustomRunnerSettingsSectionView: View {
                 }
                 Button {
                     Task {
-                        await store.send(.infoButtonTapped)
+                        await store.send(.guidanceButtonTapped)
                     }
                 } label: {
                     Label {
-                        Text("information", bundle: .module)
+                        Text("guidance", bundle: .module)
                     } icon: {
                         Image(systemName: "info.circle")
                     }
                     .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .popover(isPresented: $store.showingInfoPopover, arrowEdge: .bottom) {
+                .popover(isPresented: $store.showingGuidancePopover, arrowEdge: .bottom) {
                     GuidanceView(
                         description: "runnerGalleryDescription",
                         linkLabel: "viewRunnerGallery",

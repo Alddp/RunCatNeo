@@ -37,7 +37,7 @@ public final class CustomMetricsSettings: Composable {
     public var showingFileImporter: Bool
     public var showingConfirmationDialog: Bool
     public var pendingRemovalSourceID: UUID?
-    public var showingInfoPopover: Bool
+    public var showingGuidancePopover: Bool
     public let action: (Action) async -> Void
 
     public init(
@@ -47,7 +47,7 @@ public final class CustomMetricsSettings: Composable {
         showingFileImporter: Bool = false,
         showingConfirmationDialog: Bool = false,
         pendingRemovalSourceID: UUID? = nil,
-        showingInfoPopover: Bool = false,
+        showingGuidancePopover: Bool = false,
         action: @escaping (Action) async -> Void = { _ in }
     ) {
         self.appStateClient = appDependencies.appStateClient
@@ -60,7 +60,7 @@ public final class CustomMetricsSettings: Composable {
         self.showingFileImporter = showingFileImporter
         self.showingConfirmationDialog = showingConfirmationDialog
         self.pendingRemovalSourceID = pendingRemovalSourceID
-        self.showingInfoPopover = showingInfoPopover
+        self.showingGuidancePopover = showingGuidancePopover
         self.action = action
     }
 
@@ -128,8 +128,8 @@ public final class CustomMetricsSettings: Composable {
         case .removingCustomMetricsSourceCancelled:
             pendingRemovalSourceID = nil
 
-        case .infoButtonTapped:
-            showingInfoPopover = true
+        case .guidanceButtonTapped:
+            showingGuidancePopover = true
 
         case .errorOccurred:
             return
@@ -157,7 +157,7 @@ public final class CustomMetricsSettings: Composable {
         case fileImporterResponse(Result<[URL], any Error>)
         case removingCustomMetricsSourceConfirmed
         case removingCustomMetricsSourceCancelled
-        case infoButtonTapped
+        case guidanceButtonTapped
         case errorOccurred(RCNError)
     }
 }

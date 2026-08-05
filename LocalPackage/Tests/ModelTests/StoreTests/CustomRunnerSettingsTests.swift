@@ -355,9 +355,9 @@ struct CustomRunnerSettingsTests {
     }
 
     @MainActor @Test
-    func send_infoButtonTapped_shows_info_popover() async {
+    func send_guidanceButtonTapped_shows_guidance_popover() async {
         let sut = CustomRunnerSettings(.testDependencies())
-        await sut.send(.infoButtonTapped)
-        #expect(sut.showingInfoPopover)
+        await sut.send(.guidanceButtonTapped)
+        #expect(sut.showingGuidancePopover)
     }
 }
