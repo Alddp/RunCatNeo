@@ -132,7 +132,7 @@ struct CustomRunnerSettingsTests {
     func send_addCustomRunnerButtonTapped_shows_editor_sheet() async {
         let sut = CustomRunnerSettings(.testDependencies())
         await sut.send(.addCustomRunnerButtonTapped)
-        #expect(sut.showingCustomRunnerEditorSheet == true)
+        #expect(sut.showingCustomRunnerEditorSheet)
     }
 
     @MainActor @Test
@@ -142,7 +142,7 @@ struct CustomRunnerSettingsTests {
             showingCustomRunnerEditorSheet: true
         )
         await sut.send(.cancelButtonTapped)
-        #expect(sut.showingCustomRunnerEditorSheet == false)
+        #expect(!sut.showingCustomRunnerEditorSheet)
     }
 
     @MainActor @Test
@@ -159,7 +159,7 @@ struct CustomRunnerSettingsTests {
         )
         await sut.send(.sheetDismissed)
         #expect(sut.runnerName.isEmpty)
-        #expect(sut.isTemplate == true)
+        #expect(sut.isTemplate)
         #expect(sut.frameImages.isEmpty)
         #expect(sut.selectingFrameImage == nil)
         #expect(sut.previewingFrameImage == nil)
@@ -170,9 +170,9 @@ struct CustomRunnerSettingsTests {
     func send_renderingModePickerSelected_updates_isTemplate() async {
         let sut = CustomRunnerSettings(.testDependencies())
         await sut.send(.renderingModePickerSelected(.color))
-        #expect(sut.isTemplate == false)
+        #expect(!sut.isTemplate)
         await sut.send(.renderingModePickerSelected(.monochrome))
-        #expect(sut.isTemplate == true)
+        #expect(sut.isTemplate)
     }
 
     @MainActor @Test
@@ -210,7 +210,7 @@ struct CustomRunnerSettingsTests {
     func send_addFrameButtonTapped_shows_file_importer() async {
         let sut = CustomRunnerSettings(.testDependencies())
         await sut.send(.addFrameButtonTapped)
-        #expect(sut.showingFileImporter == true)
+        #expect(sut.showingFileImporter)
     }
 
     @MainActor @Test
@@ -358,6 +358,6 @@ struct CustomRunnerSettingsTests {
     func send_infoButtonTapped_shows_info_popover() async {
         let sut = CustomRunnerSettings(.testDependencies())
         await sut.send(.infoButtonTapped)
-        #expect(sut.showingInfoPopover == true)
+        #expect(sut.showingInfoPopover)
     }
 }

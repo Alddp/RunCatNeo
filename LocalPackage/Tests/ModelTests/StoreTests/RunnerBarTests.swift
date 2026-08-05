@@ -39,9 +39,9 @@ struct RunnerBarTests {
         let sut = RunnerBar(.testDependencies(appStateClient: .testDependency(appState)))
         await sut.send(.viewAppeared("RunnerBarTests", makeEventBridge(recording: callStack)))
         await waitUntil { callStack.withLock(\.self).count >= 4 }
-        #expect(sut.isReady == true)
+        #expect(sut.isReady)
         #expect(sut.size == CGSize(width: 10, height: 18))
-        #expect(sut.isTemplate == true)
+        #expect(sut.isTemplate)
         #expect(callStack.withLock(\.self) == [
             "getBundleImage: cat-frame-0",
             "getBundleImage: cat-frame-1",
