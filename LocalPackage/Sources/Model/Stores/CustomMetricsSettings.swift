@@ -37,7 +37,7 @@ public final class CustomMetricsSettings: Composable {
     public var showingFileImporter: Bool
     public var showingConfirmationDialog: Bool
     public var pendingRemovalSourceID: UUID?
-    public var showingHelpPopover: Bool
+    public var showingInfoPopover: Bool
     public let action: (Action) async -> Void
 
     public init(
@@ -47,7 +47,7 @@ public final class CustomMetricsSettings: Composable {
         showingFileImporter: Bool = false,
         showingConfirmationDialog: Bool = false,
         pendingRemovalSourceID: UUID? = nil,
-        showingHelpPopover: Bool = false,
+        showingInfoPopover: Bool = false,
         action: @escaping (Action) async -> Void = { _ in }
     ) {
         self.appStateClient = appDependencies.appStateClient
@@ -60,7 +60,7 @@ public final class CustomMetricsSettings: Composable {
         self.showingFileImporter = showingFileImporter
         self.showingConfirmationDialog = showingConfirmationDialog
         self.pendingRemovalSourceID = pendingRemovalSourceID
-        self.showingHelpPopover = showingHelpPopover
+        self.showingInfoPopover = showingInfoPopover
         self.action = action
     }
 
@@ -103,9 +103,6 @@ public final class CustomMetricsSettings: Composable {
         case .addCustomMetricsSourceButtonTapped:
             showingFileImporter = true
 
-        case .helpButtonTapped:
-            showingHelpPopover = true
-
         case let .fileImporterResponse(.success(urls)):
             guard let url = urls.first else { return }
             do {
@@ -131,6 +128,9 @@ public final class CustomMetricsSettings: Composable {
         case .removingCustomMetricsSourceCancelled:
             pendingRemovalSourceID = nil
 
+        case .infoButtonTapped:
+            showingInfoPopover = true
+
         case .errorOccurred:
             return
         }
@@ -154,10 +154,10 @@ public final class CustomMetricsSettings: Composable {
         case customMetricsSourceLinkTapped(CustomMetricsSource)
         case customMetricsSourceRowMoved(IndexSet, Int)
         case addCustomMetricsSourceButtonTapped
-        case helpButtonTapped
         case fileImporterResponse(Result<[URL], any Error>)
         case removingCustomMetricsSourceConfirmed
         case removingCustomMetricsSourceCancelled
+        case infoButtonTapped
         case errorOccurred(RCNError)
     }
 }

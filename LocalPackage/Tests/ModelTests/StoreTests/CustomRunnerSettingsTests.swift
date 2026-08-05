@@ -353,4 +353,11 @@ struct CustomRunnerSettingsTests {
         #expect(recorder.lock.withLock(\.self) == nil)
         #expect(sut.customRunnerBundleList.isEmpty)
     }
+
+    @MainActor @Test
+    func send_infoButtonTapped_shows_info_popover() async {
+        let sut = CustomRunnerSettings(.testDependencies())
+        await sut.send(.infoButtonTapped)
+        #expect(sut.showingInfoPopover == true)
+    }
 }

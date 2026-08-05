@@ -24,15 +24,6 @@ import SwiftUI
 struct CustomRunnerSettingsSectionView: View {
     @State var store: CustomRunnerSettings
 
-    private var runnerGalleryGuidance: AttributedString {
-        var text = AttributedString(String(localized: "runnerGalleryDescription", bundle: .module))
-        if let range = text.range(of: "Runner Gallery") {
-            text[range].link = URL.runnerGallery
-            text[range].foregroundColor = NSColor.linkColor
-        }
-        return text
-    }
-
     var body: some View {
         Section {
             List {
@@ -70,15 +61,36 @@ struct CustomRunnerSettingsSectionView: View {
                 } content: {
                     CustomRunnerEditorView(store: store)
                 }
+                Button {
+                    Task {
+                        await store.send(.infoButtonTapped)
+                    }
+                } label: {
+                    Label {
+                        Text("information", bundle: .module)
+                    } icon: {
+                        Image(systemName: "info.circle")
+                    }
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .popover(isPresented: $store.showingInfoPopover, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("runnerGalleryDescription", bundle: .module)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Link(destination: URL.runnerGallery) {
+                            Text("viewRunnerGallery", bundle: .module)
+                                .font(.caption)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: 360, alignment: .leading)
+                }
             }
         } header: {
             Text("customRunners", bundle: .module)
-        } footer: {
-            Text(runnerGalleryGuidance)
-                .multilineTextAlignment(.leading)
-                .foregroundStyle(.secondary)
-                .frame(width: 420)
-                .fixedSize()
         }
         .task {
             await store.send(.viewAppeared)
