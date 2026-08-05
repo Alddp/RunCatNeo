@@ -312,13 +312,13 @@ struct RunnerServiceTests {
                 $0.fileExists = { _ in true }
             }
         ))
-        #expect(sut.validate(customRunnerName: "Custom Runner") == false)
+        #expect(!sut.validate(customRunnerName: "Custom Runner"))
     }
 
     @Test
     func validate_returns_true_when_custom_runner_name_is_not_used() {
         let sut = RunnerService(.testDependencies())
-        #expect(sut.validate(customRunnerName: "Custom Runner") == true)
+        #expect(sut.validate(customRunnerName: "Custom Runner"))
     }
 
     @Test
@@ -405,7 +405,8 @@ struct RunnerServiceTests {
         try sut.delete(customRunner: Runner(id: "custom-runner", name: "Custom Runner", isTemplate: false, frameOrder: .custom([0])))
         let expectedJSON = #"[{"frameOrder":[0],"id":"other-runner","isTemplate":false,"name":"Other Runner"}]"#
         #expect(writtenJSON.withLock(\.self) == expectedJSON)
-        #expect(removedURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/custom-runner") == true)
+        let removedDirectoryURL = try #require(removedURL.withLock { $0 })
+        #expect(removedDirectoryURL.hasPathSuffix("RunCatNeo/custom-runner"))
     }
 
     @Test

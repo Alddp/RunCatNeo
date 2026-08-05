@@ -43,7 +43,7 @@ struct GeneralSettingsTests {
             }
         ))
         await sut.send(.launchAtLoginToggleSwitched(true))
-        #expect(sut.launchesAtLogin == true)
+        #expect(sut.launchesAtLogin)
     }
 
     @MainActor @Test
@@ -55,6 +55,6 @@ struct GeneralSettingsTests {
             }
         ))
         await sut.send(.launchAtLoginToggleSwitched(true))
-        #expect(sut.launchesAtLogin == false)
+        #expect(!sut.launchesAtLogin)
     }
 }

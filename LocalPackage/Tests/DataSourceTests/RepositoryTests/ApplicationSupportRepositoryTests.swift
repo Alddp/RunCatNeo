@@ -63,7 +63,7 @@ struct ApplicationSupportRepositoryTests {
     }
 
     @Test
-    func loadCustomRunners_reads_runners_from_customRunners_file() {
+    func loadCustomRunners_reads_runners_from_customRunners_file() throws {
         let readURL = AllocatedUnfairLock<URL?>(initialState: nil)
         let json = """
             [
@@ -86,7 +86,8 @@ struct ApplicationSupportRepositoryTests {
         }
         let sut = ApplicationSupportRepository(dataClient, fileManagerClient)
         #expect(sut.loadCustomRunners() == [Runner(id: "custom", name: "Custom", isTemplate: false, frameOrder: .custom([0, 1]))])
-        #expect(readURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/CUSTOM_RUNNERS.json") == true)
+        let readCustomRunnersURL = try #require(readURL.withLock { $0 })
+        #expect(readCustomRunnersURL.hasPathSuffix("RunCatNeo/CUSTOM_RUNNERS.json"))
     }
 
     @Test
@@ -185,7 +186,7 @@ struct ApplicationSupportRepositoryTests {
     }
 
     @Test
-    func loadData_returns_file_contents_when_file_exists() {
+    func loadData_returns_file_contents_when_file_exists() throws {
         let readURL = AllocatedUnfairLock<URL?>(initialState: nil)
         let dataClient = testDependency(of: DataClient.self) {
             $0.read = { url in
@@ -198,7 +199,8 @@ struct ApplicationSupportRepositoryTests {
         }
         let sut = ApplicationSupportRepository(dataClient, fileManagerClient)
         #expect(sut.loadData(directory: "alpha", fileName: "frame-0", fileType: .png) == Data("image".utf8))
-        #expect(readURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/alpha/frame-0.png") == true)
+        let readFrameURL = try #require(readURL.withLock { $0 })
+        #expect(readFrameURL.hasPathSuffix("RunCatNeo/alpha/frame-0.png"))
     }
 
     @Test
@@ -218,8 +220,10 @@ struct ApplicationSupportRepositoryTests {
         }
         let sut = ApplicationSupportRepository(dataClient, fileManagerClient)
         try sut.saveData(directory: "alpha", fileName: "frame-0", fileType: .png, data: Data())
-        #expect(createdDirectoryURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/alpha") == true)
-        #expect(writtenURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/alpha/frame-0.png") == true)
+        let createdContainerURL = try #require(createdDirectoryURL.withLock { $0 })
+        #expect(createdContainerURL.hasPathSuffix("RunCatNeo/alpha"))
+        let writtenFrameURL = try #require(writtenURL.withLock { $0 })
+        #expect(writtenFrameURL.hasPathSuffix("RunCatNeo/alpha/frame-0.png"))
     }
 
     @Test
@@ -251,7 +255,7 @@ struct ApplicationSupportRepositoryTests {
     }
 
     @Test
-    func delete_removes_container_directory_when_it_exists() {
+    func delete_removes_container_directory_when_it_exists() throws {
         let removedURL = AllocatedUnfairLock<URL?>(initialState: nil)
         let fileManagerClient = testDependency(of: FileManagerClient.self) {
             $0.fileExists = { _ in true }
@@ -261,7 +265,8 @@ struct ApplicationSupportRepositoryTests {
         }
         let sut = ApplicationSupportRepository(.testValue, fileManagerClient)
         sut.delete(directory: "alpha")
-        #expect(removedURL.withLock(\.self)?.hasPathSuffix("RunCatNeo/alpha") == true)
+        let removedContainerURL = try #require(removedURL.withLock { $0 })
+        #expect(removedContainerURL.hasPathSuffix("RunCatNeo/alpha"))
     }
 
     @Test

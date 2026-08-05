@@ -26,7 +26,7 @@ struct RunnerSettingsTests {
             userDefaultsClient: recorder.client
         ))
         await sut.send(.slowDownUnderLoadToggleSwitched(true))
-        #expect(sut.speedDecreasesUnderLoad == true)
+        #expect(sut.speedDecreasesUnderLoad)
         #expect(recorder.lock.withLock(\.self) == ["set: SPEED_DECREASES_UNDER_LOAD = true"])
         #expect(appState.withLock(\.runnerSpeeds.latestValue) == 1.0)
     }
@@ -42,7 +42,7 @@ struct RunnerSettingsTests {
             userDefaultsClient: recorder.client
         ))
         await sut.send(.flipHorizontallyToggleSwitched(true))
-        #expect(sut.isFlippedHorizontally == true)
+        #expect(sut.isFlippedHorizontally)
         #expect(recorder.lock.withLock(\.self) == ["set: IS_FLIPPED_HORIZONTALLY = true"])
         #expect(appState.withLock(\.runnerBundles.latestValue) == bundle)
     }
@@ -52,6 +52,6 @@ struct RunnerSettingsTests {
         let sut = RunnerSettings(.testDependencies())
         await sut.send(.customRunnerSettings(.errorOccurred(.customRunner(.loadingFailed))))
         #expect(sut.error == .customRunner(.loadingFailed))
-        #expect(sut.showingAlert == true)
+        #expect(sut.showingAlert)
     }
 }

@@ -72,7 +72,7 @@ struct CustomMetricsSettingsTests {
         await sut.send(.viewAppeared)
         await sut.send(.removeCustomMetricsSourceButtonTapped(existingID))
         #expect(sut.pendingRemovalSourceID == existingID)
-        #expect(sut.showingConfirmationDialog == true)
+        #expect(sut.showingConfirmationDialog)
         #expect(sut.customMetricsSources.count == 1)
     }
 
@@ -209,14 +209,14 @@ struct CustomMetricsSettingsTests {
     func send_addCustomMetricsSourceButtonTapped_shows_file_importer() async {
         let sut = CustomMetricsSettings(.testDependencies())
         await sut.send(.addCustomMetricsSourceButtonTapped)
-        #expect(sut.showingFileImporter == true)
+        #expect(sut.showingFileImporter)
     }
 
     @MainActor @Test
     func send_infoButtonTapped_shows_info_popover() async {
         let sut = CustomMetricsSettings(.testDependencies())
         await sut.send(.infoButtonTapped)
-        #expect(sut.showingInfoPopover == true)
+        #expect(sut.showingInfoPopover)
     }
 
     @MainActor @Test

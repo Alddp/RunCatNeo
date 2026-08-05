@@ -66,8 +66,8 @@ struct MetricsSettingsTests {
             }
         ))
         await sut.send(.showMetricsBarToggleSwitched(true))
-        #expect(sut.showingMetricsBarNotesSheet == true)
-        #expect(sut.showsMetricsBar == false)
+        #expect(sut.showingMetricsBarNotesSheet)
+        #expect(!sut.showsMetricsBar)
         #expect(setCallStack.withLock(\.self).isEmpty)
     }
 
@@ -83,8 +83,8 @@ struct MetricsSettingsTests {
             }
         ), showsMetricsBar: true)
         await sut.send(.showMetricsBarToggleSwitched(false))
-        #expect(sut.showingMetricsBarNotesSheet == false)
-        #expect(sut.showsMetricsBar == false)
+        #expect(!sut.showingMetricsBarNotesSheet)
+        #expect(!sut.showsMetricsBar)
         #expect(setCallStack.withLock(\.self) == ["set: SHOWS_METRICS_BAR = false"])
     }
 
@@ -100,8 +100,8 @@ struct MetricsSettingsTests {
             }
         ), showingMetricsBarNotesSheet: true)
         await sut.send(.changedMyMindButtonTapped)
-        #expect(sut.showingMetricsBarNotesSheet == false)
-        #expect(sut.showsMetricsBar == false)
+        #expect(!sut.showingMetricsBarNotesSheet)
+        #expect(!sut.showsMetricsBar)
         #expect(setCallStack.withLock(\.self).isEmpty)
     }
 
@@ -117,8 +117,8 @@ struct MetricsSettingsTests {
             }
         ), showingMetricsBarNotesSheet: true)
         await sut.send(.showButtonTapped)
-        #expect(sut.showingMetricsBarNotesSheet == false)
-        #expect(sut.showsMetricsBar == true)
+        #expect(!sut.showingMetricsBarNotesSheet)
+        #expect(sut.showsMetricsBar)
         #expect(setCallStack.withLock(\.self) == ["set: SHOWS_METRICS_BAR = true"])
     }
 
@@ -147,19 +147,19 @@ struct MetricsSettingsTests {
             userDefaultsClient: storage.client
         ))
         await sut.send(.monitorsSystemMetricsToggleSwitched(.memory, false))
-        #expect(sut.systemMetricsConfiguration.monitorsMemory == false)
+        #expect(!sut.systemMetricsConfiguration.monitorsMemory)
         let storedConfigurationData = storage.lock.withLock { $0[.systemMetricsConfiguration] }
         let storedConfiguration = try JSONDecoder().decode(
             SystemMetricsConfiguration.self,
             from: try #require(storedConfigurationData)
         )
-        #expect(storedConfiguration.monitorsMemory == false)
+        #expect(!storedConfiguration.monitorsMemory)
         let storedBarConfigurationData = storage.lock.withLock { $0[.metricsBarConfiguration] }
         let storedBarConfiguration = try JSONDecoder().decode(
             MetricsBarConfiguration.self,
             from: try #require(storedBarConfigurationData)
         )
-        #expect(storedBarConfiguration.showsMemory == false)
+        #expect(!storedBarConfiguration.showsMemory)
         #expect(activationRequests.withLock(\.self) == [.memory: false])
         #expect(appState.withLock(\.systemMetricsConfigurationChanges.latestValue) != nil)
     }
@@ -183,6 +183,6 @@ struct MetricsSettingsTests {
         let sut = MetricsSettings(.testDependencies())
         await sut.send(.customMetricsSettings(.errorOccurred(.customMetrics(.fileUnreadable))))
         #expect(sut.error == .customMetrics(.fileUnreadable))
-        #expect(sut.showingAlert == true)
+        #expect(sut.showingAlert)
     }
 }

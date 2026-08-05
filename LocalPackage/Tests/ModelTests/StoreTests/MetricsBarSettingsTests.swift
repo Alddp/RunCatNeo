@@ -83,13 +83,14 @@ struct MetricsBarSettingsTests {
             userDefaultsClient: storage.client
         ))
         await sut.send(.showsSystemMetricsToggleSwitched(.memory, true))
-        #expect(sut.metricsBarConfiguration.showsMemory == true)
-        #expect(storage.currentMetricsBarConfiguration()?.showsMemory == true)
+        #expect(sut.metricsBarConfiguration.showsMemory)
+        let storedBarConfiguration = try #require(storage.currentMetricsBarConfiguration())
+        #expect(storedBarConfiguration.showsMemory)
         let storedConfiguration = try JSONDecoder().decode(
             SystemMetricsConfiguration.self,
             from: try #require(storage.lock.withLock { $0[.systemMetricsConfiguration] })
         )
-        #expect(storedConfiguration.monitorsMemory == true)
+        #expect(storedConfiguration.monitorsMemory)
         #expect(activationRequests.withLock(\.self) == [.memory: true])
         #expect(appState.withLock(\.systemMetricsConfigurationChanges.latestValue) != nil)
     }
@@ -105,12 +106,12 @@ struct MetricsBarSettingsTests {
             userDefaultsClient: storage.client
         ))
         await sut.send(.showsSystemMetricsToggleSwitched(.cpu, true))
-        #expect(sut.metricsBarConfiguration.showsCPU == true)
+        #expect(sut.metricsBarConfiguration.showsCPU)
         #expect(activationCount.withLock(\.self) == 0)
     }
 
     @MainActor @Test
-    func send_showsCustomMetricsToggleSwitched_persists_visibility_and_emits_change() async {
+    func send_showsCustomMetricsToggleSwitched_persists_visibility_and_emits_change() async throws {
         let appState = AllocatedUnfairLock<AppState>(initialState: .init())
         let storage = UserDefaultsClient.storage(initialSources: [makeSource(id: UUID(1))])
         let sut = MetricsBarSettings(.testDependencies(
@@ -123,6 +124,7 @@ struct MetricsBarSettingsTests {
         #expect(appState.withLock(\.systemMetricsConfigurationChanges.latestValue) != nil)
         await sut.send(.showsCustomMetricsToggleSwitched(UUID(1), false))
         #expect(sut.metricsBarConfiguration.visibleCustomMetricsSourceIDs.isEmpty)
-        #expect(storage.currentMetricsBarConfiguration()?.visibleCustomMetricsSourceIDs.isEmpty == true)
+        let storedBarConfiguration = try #require(storage.currentMetricsBarConfiguration())
+        #expect(storedBarConfiguration.visibleCustomMetricsSourceIDs.isEmpty)
     }
 }

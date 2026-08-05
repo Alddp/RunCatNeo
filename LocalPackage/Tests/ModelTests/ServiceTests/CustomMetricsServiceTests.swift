@@ -213,7 +213,8 @@ struct CustomMetricsServiceTests {
         sut.stopMonitoring()
         #expect(appState.withLock(\.customMetricsReconcileObserver) == nil)
         #expect(appState.withLock(\.customMetricsObservers).isEmpty)
-        #expect(appState.withLock(\.metrics.latestValue)?.customMetricsBundles.isEmpty == true)
+        let metrics = try #require(appState.withLock { $0.metrics.latestValue })
+        #expect(metrics.customMetricsBundles.isEmpty)
         #expect(reconcileObserver.isCancelled)
         #expect(sourceObserver.isCancelled)
     }
@@ -266,7 +267,8 @@ struct CustomMetricsServiceTests {
         sut.emitConfigurationChange()
         await waitUntil { appState.withLock(\.customMetricsObservers).isEmpty }
         #expect(appState.withLock(\.customMetricsObservers).isEmpty)
-        #expect(appState.withLock(\.metrics.latestValue)?.customMetricsBundles.isEmpty == true)
+        let metrics = try #require(appState.withLock { $0.metrics.latestValue })
+        #expect(metrics.customMetricsBundles.isEmpty)
         sut.stopMonitoring()
     }
 
@@ -292,7 +294,8 @@ struct CustomMetricsServiceTests {
         ))
         sut.startMonitoring()
         await waitUntil { appState.withLock(\.metrics.latestValue)?.customMetricsBundles.first?.isFailed == true }
-        #expect(appState.withLock(\.metrics.latestValue)?.customMetricsBundles.first?.isFailed == true)
+        let failedBundle = try #require(appState.withLock { $0.metrics.latestValue }?.customMetricsBundles.first)
+        #expect(failedBundle.isFailed)
         sut.stopMonitoring()
     }
 
