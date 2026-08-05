@@ -108,18 +108,11 @@ struct CustomMetricsSettingsSectionView: View {
                 }
                 .buttonStyle(.borderless)
                 .popover(isPresented: $store.showingInfoPopover, arrowEdge: .bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("customMetricsDescription", bundle: .module)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Link(destination: URL.customMetricsSchema) {
-                            Text("viewJsonSchemaAndSamples", bundle: .module)
-                                .font(.caption)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: 360, alignment: .leading)
+                    GuidanceView(
+                        description: "customMetricsDescription",
+                        linkLabel: "viewJsonSchemaAndSamples",
+                        linkDestination: .customMetricsSchema
+                    )
                 }
             }
         } header: {

@@ -75,18 +75,11 @@ struct CustomRunnerSettingsSectionView: View {
                 }
                 .buttonStyle(.borderless)
                 .popover(isPresented: $store.showingInfoPopover, arrowEdge: .bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("runnerGalleryDescription", bundle: .module)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Link(destination: URL.runnerGallery) {
-                            Text("viewRunnerGallery", bundle: .module)
-                                .font(.caption)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: 360, alignment: .leading)
+                    GuidanceView(
+                        description: "runnerGalleryDescription",
+                        linkLabel: "viewRunnerGallery",
+                        linkDestination: .runnerGallery
+                    )
                 }
             }
         } header: {
